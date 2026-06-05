@@ -1,151 +1,192 @@
 ---
 name: full-prd-writer-lite
-description: Use when a product manager needs to generate, consolidate, rewrite, or baseline a complete PRD from historical PRDs, iteration documents, meeting notes, chat records, screenshots, prototypes, or scattered product descriptions.
+description: Use when a product manager needs to generate, consolidate, migrate, complete, or incrementally update a full PRD from one or more historical PRDs, iteration documents, meeting notes, screenshots, prototypes, or scattered product materials.
 ---
 
 # Full PRD Writer Lite
 
-Turn mixed product materials into a current, bounded, product-confirmed PRD baseline. Optimize for content quality and product closure, not one-shot document length.
+## Target Outcome
 
-This is a lightweight skill. Do not create structured JSON, Schema/Jinja pipelines, lifecycle routing, multi-agent workflows, or database-style traceability unless the user explicitly requests an engineering system.
+Produce a product-confirmed, review-ready, development-ready full PRD baseline from imperfect source materials.
 
-## Default Behavior
+The formal output uses the fixed Chapter 0-10 structure. The Skill optimizes for requirement preservation, product closure, complete user paths, detailed product behavior, and reproducible assembly rather than fast one-shot generation.
 
-Use staged discovery and confirmation by default.
+## Hard Invariants
 
-- A request such as `生成完整 PRD` or `用这个 Skill 生成 PRD` is not permission to skip confirmation.
-- Do not generate the formal final PRD until product explicitly confirms that it may be generated.
-- Batch questions and confirm only decisions that affect the product baseline.
-- Merge confirmation rounds when the source materials are already clear.
+- 固定输出第 0-10 章，不因输入材料结构改变最终章节骨架。
+- 格式转换不得删除、概括或压缩有效需求。
+- 第 6 章覆盖全部范围内用户故事与使用路径，不按核心、重点或辅助抽样。
+- 第 7 章完整描述全部当前有效功能，不因篇幅迁往第 10 章。
+- 第 8 章按外部系统组织，但仍按协同场景和功能写详细产品需求。
+- 第 10 章是可选附录，不是第 7 章的压缩区。
+- 每个需求单元的新增、修改或删除都必须检查第 0-10 章影响。
+- 产品经理负责收口所有会改变当前产品基线的问题。
+- 已确认正文写入章节分片后冻结；正式文件只从冻结或基线继承正文块原样装配。
+- 最终拼装不得重新概括、扩写、补写或修改冻结正文。
 
-For a new multi-source task, the first substantive response should contain the material index, product baseline summary, explicit conflicts/gaps, and the first confirmation batch. Do not replace visible confirmation with an unreported internal analysis.
+## Capability Gate
 
-Only skip confirmation when the user explicitly says something equivalent to:
+深度处理前检查：
+
+```text
+材料是否均可读取
+是否能够持久化中间结果
+是否能够精确拼装正文
+是否能够执行文本或哈希校验
+```
+
+如果存在无法读取的附件、不能落盘的环境或不能执行确定性装配校验的环境：
+
+1. 先向用户说明限制和受影响范围。
+2. 不得声称已经完成可恢复、无损的正式基线。
+3. 只能输出分段结果或 `未确认版完整 PRD 草案`。
+4. 不得用模型推断替代缺失材料。
+
+## Processing Modes
+
+先识别处理模式，再独立判断处理深度。
+
+处理模式：
+
+```text
+多材料基线重建
+单文档重构
+基线增量升级
+```
+
+- **多材料基线重建**：从多份历史、迭代、会议、原型或碎片材料恢复当前系统全貌。
+- **单文档重构**：对一份 PRD 进行模板迁移、规范化、局部补齐或重构。
+- **基线增量升级**：在用户指定的正式完整版基线上合入新迭代，另建新版本。
+
+处理深度：
+
+```text
+仅检查
+局部调整
+部分重构
+完整重建
+```
+
+不要使用“合规/不合规”代替模式和深度判断。
+
+## Default Interaction
+
+默认先分析、确认，再生成。用户说“生成完整 PRD”不表示允许跳过确认。
+
+默认路径：
+
+```text
+轻量扫描
+-> 确认系统、范围、排除范围、模式、初步目标版本
+-> 建立当前模式必要的中间产物
+-> 确认系统能力地图和全局规则
+-> 按需求单元分轮确认并冻结正文块
+-> 再次确认最终文档身份
+-> 确定性装配和校验
+```
+
+交互要求：
+
+- 大型系统按需求单元分轮推进，不要求用户一次确认全部系统。
+- 每轮先确认会改变产品行为的阻断问题，再补充当前需求单元的字段、规则、异常和验收。
+- 一个需求单元可以跨越多个章节；确认时必须展示其完整跨章表达。
+- 用户修改已确认内容时，按需求单元成组检查和解冻，不按单章孤立修改。
+- 输入越规范，越应复用原文并减少中间产物。
+
+## Main Workflow
+
+1. 执行 Capability Gate。
+2. 轻量扫描材料，识别来源版本、现有基线、材料关系和范围。
+3. 向用户确认系统名称、范围、排除范围、模式和初步目标版本。
+4. 加载 `references/prd-discovery-workflow.md`，按模式建立必要工作区。
+5. 恢复并确认当前系统能力地图、全局规则、角色、流程、状态和外部边界。
+6. 按需求单元提取当前有效需求，处理冲突和待确认问题。
+7. 生成该需求单元对第 0-10 章的候选正文块，由产品分批确认。
+8. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
+9. 完成全部计划内需求单元后，执行完整性和内容质量闸门。
+10. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和文件名。
+11. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配正式文件。
+12. 装配、覆盖和跨章节检查全部通过后，才可标记为正式基线。
+
+## Requirement Units And Content Blocks
+
+需求单元是生成、修改和影响分析的基本单位：
+
+```text
+功能需求单元
+全局规则单元
+```
+
+全局规则包括角色权限、导航、公共交互、上传下载、搜索、错误反馈、数据权限、审计及其他影响多个功能的产品规则。
+
+正文块是确认和冻结单位。合法状态：
+
+```text
+草稿 -> 待确认 -> 已确认 -> 已冻结
+基线继承 -> 待确认（受到变更影响时）
+已冻结 -> 待确认（必须存在变更记录）
+待确认 -> 草稿（产品要求重新整理时）
+```
+
+新生成或发生语义变化的正文块不得跳过确认直接冻结。`chapters/` 中的正文块是冻结正文唯一真源；需求单元包只保存来源、映射、影响、确认记录和哈希。
+
+每个需求单元必须对第 0-10 章记录：
+
+```text
+受影响并修改
+已检查无影响
+不适用（原因）
+```
+
+## Formal Baseline Gate
+
+正式基线必须同时满足：
+
+- 目标系统、范围、排除范围和目标版本已经确认。
+- 所有计划内材料均已处理或明确排除。
+- 有效需求均进入正文、明确排除或经产品确认删除。
+- 当前系统能力地图、全局规则和角色权限已经确认。
+- 第 6 章覆盖全部适用用户故事和使用路径。
+- 第 7 章覆盖全部当前有效叶子功能并达到可评审、可开发深度。
+- 第 8 章完整描述涉及的外部系统协同场景。
+- 变更集中的全部需求单元均完成第 0-10 章影响检查。
+- 会改变当前基线的阻断事项已经由产品收口。
+- 所有待装配正文块均为 `已冻结` 或 `基线继承`。
+- `ASSEMBLY-MANIFEST.md` 与章节唯一真源一致。
+- `scripts/assemble_prd.py` 返回通过结果。
+- 产品明确同意生成正式完整版。
+
+任何一项未满足，都不能标记为正式产品基线。
+
+## Direct-Generation Degradation
+
+只有用户明确说出类似以下指令时才跳过确认：
 
 ```text
 跳过确认，直接生成
 不要提问，直接输出
-基于现有材料直接生成最终文档
+基于现有材料直接生成
 ```
 
-In that case, output an `未确认版完整 PRD 草案`, not a formal product baseline. Include a risk summary, preserve conflicts as unresolved, and never present unsupported product decisions as confirmed facts.
+此时：
 
-## Core Workflow
-
-Load `references/prd-discovery-workflow.md` before processing multiple source materials.
-
-### 1. Establish the Material Baseline
-
-- Identify the target product/system, target baseline version or date, and intended scope.
-- Build a material index with source, time/version, applicable scope, and disposition.
-- Mark materials as current baseline, supplemental, superseded, reference-only, or pending confirmation.
-- Extract explicit conflicts and missing product decisions.
-- Ask the first confirmation batch: material precedence, target scope, and boundary conflicts.
-
-### 2. Establish the Product Skeleton
-
-- Produce the first/second-level functional tree.
-- Summarize roles and menu/button/data permissions.
-- Identify the main business flow and key state transitions.
-- Separate this system's functions from external-system responsibilities.
-- Ask the second confirmation batch: functional tree, roles, flow/state, and external boundaries.
-
-### 3. Establish Scenarios and Requirements
-
-- Discover the complete scenario set, then classify scenarios as core, key, supporting, or out of scope.
-- Fully expand core scenarios; expand key scenarios only to the detail needed for implementation and testing; summarize supporting scenarios.
-- Expand Chapter 7 and Chapter 8 requirements from the confirmed skeleton and scenarios.
-- Ask the third confirmation batch: core scenarios, high-risk product gaps, and permission to generate the final PRD.
-
-### 4. Generate and Verify
-
-- Check the final generation gate.
-- Write the PRD using `references/full-prd-template.md`.
-- Apply the chapter boundaries in `references/full-prd-chapter-rules.md`.
-- Run cross-chapter chain checks before delivery.
-
-## Information Classes
-
-Keep these classes distinct during discovery:
-
-| Class | Meaning | Treatment |
-| --- | --- | --- |
-| Confirmed decision | Product explicitly confirmed it | May be written as definitive |
-| Supported fact | A current applicable source states it without conflict | May be written with source retained in working notes |
-| Low-risk editorial completion | Naming, formatting, ordinary wording that does not change behavior | May be standardized without asking |
-| Product inference | Plausible but not stated product behavior | Must be confirmed or moved to Chapter 9 |
-| Conflict | Applicable sources disagree | Must not be silently merged |
-
-Never infer scope, permissions, state transitions, data meaning, business rules, external responsibility, failure behavior, or acceptance outcomes.
-
-## Confirmation Rules
-
-- Prefer 5-10 selectable decisions plus at most 1-3 open questions per batch.
-- State the source, reason for confirmation, affected chapters/functions, and default handling if unanswered.
-- Ask blockers first. Do not ask the user to review every sentence or every low-risk detail.
-- Do not create a separate confirmation workflow for every chapter.
-
-Use these confirmation levels:
-
-```text
-阻断：must be resolved before a formal baseline is generated
-非阻断：may remain in Chapter 9 if the body is still valid
-后续：outside the current baseline; move to future scope or remove
-```
-
-## Final Generation Gate
-
-Generate a formal full PRD only when:
-
-- target baseline and document scope are confirmed;
-- material precedence is clear enough to avoid mixing old and current requirements;
-- first/second-level functional tree is confirmed;
-- core roles and permission boundaries are confirmed;
-- main flow and key states are confirmed;
-- core scenarios are confirmed;
-- external-system responsibility boundaries are confirmed;
-- blocking conflicts are resolved;
-- remaining confirmation items do not invalidate the body;
-- product explicitly confirms final generation.
-
-If a blocker affects the main flow, permissions, state, data meaning, external boundary, or acceptance outcome, do not hide it in Chapter 9 and call the result final.
-
-## Cross-Chapter Verification
-
-Before delivery, verify:
-
-```text
-role -> permission
-scenario -> Chapter 7 or Chapter 8 requirement
-flow -> state trigger and outcome
-function -> testable acceptance point
-external collaboration -> product entry/display/failure handling
-critical data -> source/display/edit/validation/transition rule
-pending item -> no conflicting definitive statement in the body
-```
+1. 标记为 `未确认版完整 PRD 草案`。
+2. 在第 0 章前说明材料限制、冲突、阻断项和推断风险。
+3. 不把推断写成已确认事实。
+4. 不把草案称为研发、测试或正式产品基线。
+5. 可以使用模板生成草案，但不得伪造冻结状态或装配通过结果。
 
 ## Reference Loading
 
-- Load `references/prd-discovery-workflow.md` for multi-source discovery, conflict handling, confirmation, scenario classification, and generation gates.
-- Load `references/full-prd-chapter-rules.md` before drafting or revising chapter content.
-- Load `references/full-prd-template.md` only when preparing the final PRD or an explicitly requested unconfirmed draft.
+- 每个完整 PRD 任务都加载 `references/prd-discovery-workflow.md`。
+- 起草或修改章节正文前加载 `references/full-prd-chapter-rules.md`。
+- 最终装配或生成明确要求的未确认草案时加载 `references/full-prd-template.md`。
+- 多材料任务只加载当前材料分片、相关需求单元和必要全局规则，不反复载入全部材料。
 
-## Content Boundaries
+## Runtime Boundaries
 
-- Chapter 7 is the main requirements body. Keep short tables and rules there.
-- Chapter 8 contains product-side external collaboration requirements, not API documentation.
-- Chapter 9 contains source gaps or unresolved product decisions that product must close.
-- Chapter 10 is optional and only contains confirmed, body-referenced material that is too long for Chapter 7.
-- Exclude one-time deployment, environment, middleware, technical refactoring, and engineering delivery tasks.
-- Retain product-visible and testable constraints such as response expectations, file limits, batch limits, permission isolation, audit traces, compatibility, user-facing errors, and failure compensation in Chapter 7 or 8.
-
-## Direct-Generation Degradation
-
-When the user explicitly skips confirmation:
-
-1. Label the output `未确认版完整 PRD 草案`.
-2. Add a short risk summary before Chapter 0.
-3. Mark unsupported statements as inferred or pending.
-4. Keep substantive conflicts unresolved.
-5. Put blocking and non-blocking product questions in Chapter 9.
-6. State that the draft is for product review and is not yet a development/test baseline.
+- 不建立 Schema、Jinja、Normalizer、数据库式追踪或多代理编排。
+- 唯一确定性脚本是 `scripts/assemble_prd.py`，只校验和拼接正文块，不解释需求或生成产品内容。
+- 一次性部署、环境、中间件、技术重构和研发交付任务不进入完整产品基线。
+- 产品可见、可验证的限制仍应写入第 7 或第 8 章。
+- 第 9 章问题必须来自输入缺失、材料冲突或产品提需未写清，不得为了填满章节而制造问题。
