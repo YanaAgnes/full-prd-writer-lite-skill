@@ -473,6 +473,15 @@ stable candidate `US-`, `F-`, and `EXT-` IDs during impact planning. Record the
 cross-reference relation in every affected row before drafting prose. Do not
 leave an external-collaboration impact as an unlinked narrative description.
 
+Use an explicit relationship tuple such as:
+
+```text
+US-001 <-> F-SEAL-001 <-> EXT-SEAL-001
+```
+
+Repeat all IDs in each affected Chapter 6, 7, and 8 impact row. IDs use stable
+ASCII slugs or numbers; labels such as `US-电子印章申请` are names, not stable IDs.
+
 ## 7. Content Blocks And State Transitions
 
 Content blocks are the confirmation and freeze unit.

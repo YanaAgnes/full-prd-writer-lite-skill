@@ -58,6 +58,8 @@ Hard relations:
 - Chapter 4 summarizes permissions; Chapters 6-8 show their behavior in paths and functions.
 - Chapter 5 describes business-object/process/state flows; Chapter 6 describes complete user paths.
 - Every Chapter 6 story maps to Chapter 7 and, when applicable, Chapter 8.
+- A Chapter 6/7/8 relationship uses stable IDs in every direction, for example
+  `US-001 <-> F-SEAL-001 <-> EXT-SEAL-001`; a descriptive label is not an ID.
 - Chapter 7 remains the primary body even when it becomes very long.
 - Product-visible limits and failure behavior stay with their Chapter 7 or 8 requirement.
 - An unresolved product decision must not appear elsewhere as a definitive rule.
