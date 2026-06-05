@@ -468,6 +468,11 @@ For every requirement unit and every 第 0-10 章 cell, record:
 
 Record related content-block IDs and chapter locations. A change does not require every chapter to change, but it requires every chapter to be checked.
 
+When one requirement unit affects Chapters 6, 7, and 8, assign or preserve its
+stable candidate `US-`, `F-`, and `EXT-` IDs during impact planning. Record the
+cross-reference relation in every affected row before drafting prose. Do not
+leave an external-collaboration impact as an unlinked narrative description.
+
 ## 7. Content Blocks And State Transitions
 
 Content blocks are the confirmation and freeze unit.
