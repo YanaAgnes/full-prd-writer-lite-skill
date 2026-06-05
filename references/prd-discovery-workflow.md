@@ -55,7 +55,32 @@ preliminary target output version
 
 Do not deeply atomize materials before these are confirmed. The scan may inspect headings, revision records, filenames, dates, and obvious material relationships.
 
-### 1.3 Final identity confirmation
+### 1.3 Source-sufficiency gate
+
+Before selecting a processing mode, decide whether the supplied evidence can
+recover the user's intended target scope.
+
+```text
+trusted current full baseline
+or
+sufficient historical/iteration materials to reconstruct the full target scope
+or
+one document that itself claims and demonstrates full target-scope coverage
+```
+
+A local iteration PRD usually proves only its change scope. It does not prove
+unchanged historical functions, roles, paths, fields, or rules.
+
+If evidence is insufficient:
+
+1. Identify the missing baseline or historical scope.
+2. Ask product to provide it or explicitly reduce the target scope.
+3. Do not select `单文档重构` merely because only one file was supplied.
+4. Do not promise a formal full PRD from a local iteration document.
+5. If product explicitly insists on continuing, produce only a bounded
+   `未确认版完整 PRD 草案` and state that unchanged system behavior is not recovered.
+
+### 1.4 Final identity confirmation
 
 Before formal assembly, confirm again:
 
@@ -91,6 +116,8 @@ Additional rules:
 - A rough current PRD plus historical iteration materials is `多材料基线重建`.
 - A document with a different chapter structure but complete content is `单文档重构`.
 - A trusted full PRD plus a new iteration PRD is `基线增量升级`.
+- One local iteration PRD without a trusted baseline is insufficient evidence,
+  not automatically `单文档重构`.
 - Do not label the input merely `合规` or `不合规`; state mode and depth.
 
 ### 2.2 Processing depths
