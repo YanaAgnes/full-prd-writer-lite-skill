@@ -476,7 +476,7 @@ confirmed state
 
 A requirement-unit change is never a single-chapter edit.
 
-For every function or global-rule unit, record Chapter 0-10 conclusions:
+For every function or global-rule unit, record its conclusions for 第 0-10 章:
 
 ```text
 受影响并修改

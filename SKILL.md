@@ -9,11 +9,15 @@ description: Use when a product manager needs to generate, consolidate, migrate,
 
 Produce a product-confirmed, review-ready, development-ready full PRD baseline from imperfect source materials.
 
-The formal output uses the fixed Chapter 0-10 structure. The Skill optimizes for requirement preservation, product closure, complete user paths, detailed product behavior, and reproducible assembly rather than fast one-shot generation.
+The formal output uses the fixed Chapter 0-10 numbering model: Chapters 0-9
+are required, and Chapter 10 appears only when appendix admission conditions
+are met. The Skill optimizes for requirement preservation, product closure,
+complete user paths, detailed product behavior, and reproducible assembly
+rather than fast one-shot generation.
 
 ## Hard Invariants
 
-- 固定输出第 0-10 章，不因输入材料结构改变最终章节骨架。
+- 固定使用第 0-10 章编号体系，不因输入材料结构改变章节职责；第 0-9 章必需，第 10 章按附录准入条件生成。
 - 格式转换不得删除、概括或压缩有效需求。
 - 第 6 章覆盖全部范围内用户故事与使用路径，不按核心、重点或辅助抽样。
 - 第 7 章完整描述全部当前有效功能，不因篇幅迁往第 10 章。

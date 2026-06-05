@@ -431,7 +431,7 @@ confirmation record
 
 ### 6.3 Impact index
 
-For every requirement unit and every Chapter 0-10 cell, record:
+For every requirement unit and every 第 0-10 章 cell, record:
 
 ```text
 受影响并修改
