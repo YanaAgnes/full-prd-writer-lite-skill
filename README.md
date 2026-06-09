@@ -1,5 +1,7 @@
 # Full PRD Writer Lite Skill
 
+版本：`v0.1.0`
+
 用于生成、重构、合并、补全和增量升级完整版 PRD 的 Skill。
 
 ## 安装

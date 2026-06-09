@@ -1,6 +1,7 @@
 ---
 name: full-prd-writer-lite
 description: Use when a product manager needs to generate, consolidate, migrate, complete, or incrementally update a full PRD from one or more historical PRDs, iteration documents, meeting notes, screenshots, prototypes, or scattered product materials.
+version: 0.1.0
 ---
 
 # Full PRD Writer Lite
