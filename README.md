@@ -75,7 +75,7 @@ python3 -m unittest scripts/test_validate_prd_quality.py scripts/test_assemble_p
 ## 目录
 
 ```text
-full-prd-writer-lite/
+full-prd-writer-lite-skill/
 ├── SKILL.md
 ├── references/
 ├── scripts/
