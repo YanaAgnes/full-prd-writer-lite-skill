@@ -33,6 +33,16 @@ Use these rules whenever drafting, migrating, reviewing, or changing full PRD ch
 
 Chapters 0-9 are required for a formal baseline. Chapter 10 is optional and appears only when appendix admission conditions are met.
 
+The final assembled PRD must contain one coherent Chapter 0-9 sequence, with
+Chapter 10 only when appendix admission conditions are met. Do not leave
+repeated `## 2.`, `## 3.`, `## 5.`, `## 6.`, `## 7.`, or `## 8.` sections
+from intermediate rounds. Do not add formal Chapters 11+; iteration risks,
+test cases, delivery boundaries, and confirmation conclusions must either fit
+Chapter 0-10 responsibilities or be excluded from the full PRD baseline.
+Requirement-unit fragments are internal assembly inputs; the formal output
+reads as one document. A required chapter is not complete merely because its
+heading exists; Chapters 0-9 must each contain formal, reviewable body content.
+
 ## 2. Cross-Chapter Rules
 
 | Chapter | Controls | Must Not Become |
@@ -51,6 +61,12 @@ Chapters 0-9 are required for a formal baseline. Chapter 10 is optional and appe
 
 Hard relations:
 
+- Use stable index families consistently:
+
+  ```text
+  M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending item
+  ```
+
 - Chapter 0 is the only version evolution record.
 - Chapter 1 describes only the current document identity.
 - Chapter 2 gives boundary overview; Chapter 8 gives detailed collaboration behavior.
@@ -63,6 +79,47 @@ Hard relations:
 - Chapter 7 remains the primary body even when it becomes very long.
 - Product-visible limits and failure behavior stay with their Chapter 7 or 8 requirement.
 - An unresolved product decision must not appear elsewhere as a definitive rule.
+- Requirement-unit files are assembly inputs. The final PRD must not read as a
+  list of `F-USER-001`, `F-KB-001`, or similar file names at Chapter 6/7/8/9
+  second level. Use product reading structure first, stable IDs second.
+
+### 2.1 Final file identity
+
+Every formal workspace keeps two file identities:
+
+```text
+FULL-PRD.md
+产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md
+```
+
+- `FULL-PRD.md` is the canonical baseline for assembly checks and future
+  incremental upgrades.
+- The product-named file is the delivery export for human review.
+- Future incremental work merges into the canonical baseline structure, not into
+  an old delivery export.
+- Use `待产品确认版`, `产品确认版`, or `正式基线候选` unless product explicitly
+  confirms a true `正式版`.
+
+Chapter 1 should make the document identity clear enough that readers know
+which version, status, baseline date, generation date, and material scope they
+are reading. Process-only details such as hashes and manifests stay out of the
+final body.
+
+### 2.2 Index model
+
+Use these index families:
+
+| Prefix | Meaning | Primary chapter | Must link to |
+| --- | --- | --- | --- |
+| `M-` | Module / first-level functional domain | 3 | `US-`, `F-` |
+| `US-` | User story / usage path | 6 | `M-`, `F-`, optional `EXT-` |
+| `F-` | Leaf function or global product rule | 7 | `M-`, `US-`, optional `EXT-`, optional `PEND-` |
+| `EXT-` | External collaboration scenario | 8 | `US-`, `F-` |
+| `PEND-` | Non-blocking pending item | 9 | `M-`, `F-` or `EXT-` |
+
+The final document should provide enough overview tables for a reviewer to trace
+from a module to its stories, detailed functions, external collaborations, and
+remaining pending items without opening internal work files.
 
 ## 3. Chapter 0-5 Rules
 
@@ -80,6 +137,8 @@ Rules:
 - Incremental upgrade records additions, modifications, deletions, and affected scope.
 - Do not include engineering logs, deployment records, field rules, or page interactions.
 - Do not create another version-history chapter at the end.
+- Do not leave placeholder numbering such as `0.x`, `2.x`, `4.x`, `5.x`, or
+  `7.x` in a formal baseline.
 
 ### 3.2 Chapter 1: 文档信息
 
@@ -101,6 +160,17 @@ related materials
 ```
 
 Keep source latest version, existing baseline version, iteration version, and target output version distinct in working artifacts. Chapter 1 records the confirmed current document identity.
+
+Recommended additional rows when delivering a formal baseline:
+
+```text
+基线文件
+交付文件
+文件身份说明
+```
+
+Use them to distinguish canonical baseline from delivery export when the
+document is generated in a persistent PRD workspace.
 
 ### 3.3 Chapter 2: 系统概述
 
@@ -185,6 +255,18 @@ Rules:
 
 Chapter 6 must cover the complete set of current in-scope user stories and usage paths.
 
+Recommended reading structure:
+
+```text
+6.1 用户故事总览
+6.x 按角色、功能域或用户目标展开
+6.x.x US-xxx 用户故事名称
+```
+
+Do not use unnumbered `## F-xxx` or `## US-xxx` headings as the second-level
+structure of Chapter 6. Stable IDs belong in story titles, summary tables, and
+mapping fields.
+
 ### 4.1 Coverage source
 
 Generate stories from:
@@ -268,9 +350,28 @@ functional domain
 -> leaf function and rule
 ```
 
+Recommended reading structure:
+
+```text
+7.1 功能结构总览
+7.x 功能域
+7.x.x 业务对象 / 能力分组 / 用户事项
+7.x.x F-xxx 叶子功能名称
+```
+
+Do not generate Chapter 7 as a flat sequence of `## F-...` requirement-unit
+headings. The reader should first see product domains and business objects, then
+leaf function IDs.
+
 Prefer one consistent second-level dimension inside a functional domain. Do not mix menu, role, page type, and iteration version arbitrarily.
 
 The final split level is the smallest unit that can be explained and accepted independently.
+
+The leaf-function structure is flexible. Preserve a clear source-document
+style when it is coherent and product-friendly. When the source is assembled
+from multiple iterations or has no stable narrative logic, use an official PRD
+product-description style: natural-language sections, short lists where useful,
+and tables only when structure improves clarity.
 
 ### 5.2 Leaf-function completeness
 
@@ -278,6 +379,7 @@ Each current leaf function states, when applicable:
 
 ```text
 stable function ID
+related module ID
 functional-tree location
 role and permission
 entry and prerequisite
@@ -292,6 +394,7 @@ branches and exceptions
 failure, retry, and compensation
 internal-function relation
 external collaboration
+pending item IDs
 testable acceptance
 ```
 
@@ -310,6 +413,59 @@ visibility/editability by role/state
 ```
 
 These are product fields, not database columns, API parameters, or table schemas.
+
+### 5.2.1 Leaf-function element check
+
+Leaf-function generation is based on element checking, not on a mandatory
+display template. For every `F-` leaf function, check whether each element
+exists, applies, and should enter the formal product baseline:
+
+| Element | Check |
+| --- | --- |
+| 需求内容 | Whether the function states what it is and what product problem it solves. |
+| 需求背景 | Whether there is business context, trigger reason, or change reason worth preserving. |
+| 页面路径 / 入口 | Whether there is a menu path, page entry, route, redirect, trigger, or non-page entry. |
+| 功能说明 | Whether core interaction, input/output, business rule, and system response are clear. |
+| 页面布局 / 区域元素 | Whether page regions, visible elements, ordering, and operation locations are clear. |
+| 交互图 / 流程关系 | If diagrams exist, whether actors, steps, responses, and results are transcribed into text. |
+| 外部依赖 | Whether the function depends on external systems, other modules, interfaces, manual work, or upstream/downstream capabilities. |
+| 功能权限 | Whether role visibility, availability, and executable operations are clear. |
+| 数据权限 | Whether viewable, operable, exportable, or manageable data scope is clear. |
+| 历史数据 | Whether legacy data, history records, compatibility, backfill, migration, or echo behavior is involved. |
+| 异常说明 | Whether no-permission, no-data, validation failure, timeout, external failure, duplicate submission, retry, or compensation behavior is clear. |
+| 原型图信息 | If prototypes exist, whether page regions, elements, fields, operations, and states are extracted. |
+| 补充说明 | Whether boundaries, limits, special terms, compatibility rules, or not-applicable conclusions are needed. |
+| 验收口径 | Whether the function has testable acceptance points. |
+
+If an element is not involved, has no source, or is unchanged in the current
+iteration, the function may use `-`, an empty value, `不涉及`, `本次不变`, or
+`沿用现有规则`. Do not use vague substitutes such as `按需展示`,
+`支持相关操作`, or `按具体功能判断`.
+
+Do not make priority or delivery timing mandatory Chapter 7 elements in a full
+PRD baseline. If source materials contain `P0/P1/P2`, launch dates, delivery
+dates, or schedule constraints, keep them out of the stable function body unless
+they create product-visible behavior, scope, availability, or compatibility
+rules. When they are only planning metadata, keep them in working notes,
+revision context, or delivery planning artifacts instead.
+
+### 5.2.2 Official product-description style
+
+Use this style when original function material has been stitched together over
+multiple iterations or lacks a coherent authorial structure:
+
+- Natural language is the default for 需求内容, 需求背景, 页面路径与入口,
+  页面整体说明, 交互说明, 异常说明, and 补充说明.
+- Write interaction as user action -> system judgment/response -> result,
+  including limits and states when applicable.
+- Write page layout from whole to part, commonly left to right and top to
+  bottom, so readers can reconstruct the product behavior without a prototype.
+- Use lists for short rule sets or acceptance points.
+- Use tables only for naturally structured information such as product fields,
+  resource types, role permissions, data permissions, state transitions,
+  exception matrices, compatibility mappings, and acceptance matrices.
+- Do not force background, requirement content, or ordinary interaction prose
+  into a table merely for uniformity.
 
 ### 5.3 Page and operation granularity
 
@@ -365,6 +521,17 @@ external system
 -> collaboration scenario / function
 -> detailed product behavior
 ```
+
+Recommended reading structure:
+
+```text
+8.1 外部系统协同总览
+8.x 外部系统名称
+8.x.x EXT-xxx 协同场景名称
+```
+
+Do not organize Chapter 8 primarily by internal function blocks. Internal
+functions are referenced from external-system sections through `F-` IDs.
 
 ### 6.2 Scenario completeness
 
@@ -441,7 +608,29 @@ future processing condition
 state
 ```
 
+Use one consistent table shape:
+
+| 待确认编号 | 关联模块 | 关联需求 | 问题类型 | 来源依据 | 当前基线处理 | 是否阻断 | 后续处理条件 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Do not generate many small Chapter 9 tables with different headers. Grouping by
+module is acceptable only if the table schema stays the same.
+
 An unconfirmed draft may temporarily list blockers, but they must not conflict with definitive body text.
+
+### 7.3 Relationship units
+
+A relationship unit describes behavior between two or more functions, such as
+how a comprehensive-search result displays knowledge-answer content. Keep it as
+an independent requirement unit when splitting it would leave no clear owner for
+the acceptance boundary.
+
+Final-body rule:
+
+- Primary functions keep short references to the relationship unit.
+- The relationship unit owns the detailed return structure, display relation,
+  degradation behavior, and acceptance points.
+- Do not duplicate the same detailed rules across every related function.
 
 ## 8. Chapter 10 Rules
 
@@ -526,7 +715,29 @@ Do not use these as requirements without an explicit referenced definition:
 提供管理能力
 异常时进行提示
 其他规则同上
+按功能权限配置
+按具体功能判断
+相关业务操作
+源文档依据
 ```
+
+Do not leave internal process wording in formal PRD body text:
+
+```text
+候选正文块
+章节分片
+哈希
+manifest
+本轮确认
+本轮不覆盖
+本轮不展开
+后续确认
+后续需求单元
+待写入
+```
+
+If the phrase is needed for process recovery, keep it in `PRD-CONTROL.md`,
+requirement-unit packs, or validation logs, not in the assembled PRD.
 
 ### 10.2 Final chains
 
@@ -544,6 +755,7 @@ function -> testable acceptance
 pending item -> no contradictory definitive body statement
 requirement-unit change -> complete Chapter 0-10 impact row
 frozen/inherited block -> manifest -> final file exact text
+final file -> quality validator -> no empty required chapters, duplicate chapters, placeholder numbering, process wording, or vague substitutes
 ```
 
 ### 10.3 Review scope by mode

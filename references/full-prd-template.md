@@ -3,6 +3,10 @@
 Use this file only as the final Markdown output shape. Follow
 `full-prd-chapter-rules.md` for content depth and completeness.
 
+All `x`, `xxx`, and example IDs below are placeholders. Replace them with
+final continuous numbering and stable IDs before freezing formal body blocks.
+No placeholder numbering may remain in `FULL-PRD.md`.
+
 ````markdown
 > 仅当用户明确要求跳过确认并直接生成时保留本提示：
 >
@@ -33,6 +37,9 @@ Use this file only as the final Markdown output shape. Follow
 | 作者 |  |
 | 适用范围 |  |
 | 关联材料 |  |
+| 基线文件 | FULL-PRD.md |
+| 交付文件 | 产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md |
+| 文件身份说明 | FULL-PRD.md 为可重装配基线；交付文件为同内容阅读副本。 |
 
 # 2. 系统概述
 
@@ -149,7 +156,9 @@ flowchart TD
 
 ## 6.2 用户故事详情
 
-### 6.2.x US-xxx 用户故事名称
+### 6.2.x 功能域 / 用户目标
+
+#### 6.2.x.x US-xxx 用户故事名称
 
 - 关联功能编号：
 - 关联外部协同编号：
@@ -178,38 +187,38 @@ flowchart TD
 
 #### 7.x.x.x F-xxx 叶子功能名称
 
-**功能定位**
+> 叶子功能正文不强制使用本小节样式；当来源材料有清晰结构时可沿用来源表达。
+> 当来源由多轮迭代拼接或缺少稳定叙事逻辑时，使用下面的正式 PRD 产品说明风格。
+> 每个叶子功能必须完成要素检查；不涉及、无来源或本次不变的要素可写 `-`、留空、写 `不涉及` 或 `本次不变`。
 
-| 项目 | 说明 |
-| --- | --- |
-| 功能编号 |  |
-| 所属功能域 |  |
-| 上级菜单/业务对象 |  |
-| 页面/任务 |  |
-| 适用角色 |  |
-| 关联用户故事 |  |
-| 关联外部协同 |  |
+**需求内容与背景**
 
-**入口与前置条件**
+用自然语言说明该功能是什么、解决什么产品问题、来源背景或变更原因。不要把优先级或交付时间作为完整版 PRD 必填字段；只有形成产品可见规则时才写入正文。
 
-说明入口、到达路径、前置权限、前置状态和必要业务条件。
+**关联与定位**
 
-**页面、区域与元素**
+说明功能编号、所属模块、所属功能域、上级菜单/业务对象、页面/任务、适用角色、关联用户故事、关联外部协同和关联待确认项。可使用短段落、列表或表格。
 
-| 区域 | 元素/组件 | 排列与展示 | 可执行操作 | 权限条件 |
-| --- | --- | --- | --- | --- |
+**页面路径与入口 / 触发条件**
 
-**产品字段**
+说明菜单路径、页面入口、路由、跳转来源、触发条件、前置权限、前置状态和必要业务条件。无页面入口时说明能力触发方式。
+
+**页面 / 能力整体说明**
+
+页面型功能按整体到局部描述布局、区域、元素、排序、展示和可执行操作；非页面型能力说明处理对象、输入输出、处理阶段和用户可见结果。
+
+**交互与业务规则**
+
+按用户动作、系统判断、系统响应和结果说明完整规则。规则较少时用自然语言或列表；规则较多或有明确编号时可使用表格。
+
+**字段与数据规则**
 
 | 字段 | 所在区域 | 展示/填写 | 数据来源 | 必填 | 校验 | 默认值 | 联动/状态规则 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
-**功能与交互规则**
+**权限、依赖与历史数据**
 
-按用户动作、系统判断、系统响应和结果说明完整规则。
-
-| 规则编号 | 触发动作/条件 | 系统判断 | 系统响应 | 结果/后续动作 |
-| --- | --- | --- | --- | --- |
+说明功能权限、数据权限、外部依赖、内部功能关系、历史数据、兼容、补字段、迁移或回显规则。不涉及时写 `-`。
 
 **数据与状态变化**
 
@@ -226,7 +235,11 @@ flowchart TD
 | 验收编号 | 前置条件 | 操作/触发 | 预期结果 |
 | --- | --- | --- | --- |
 
-仅在某个小节确实不适用时省略，并说明不适用原因；不得使用空泛语句占位。
+**补充说明**
+
+记录边界、限制、特殊口径、原型图转写结论或不适用说明。无补充说明时写 `-`。
+
+仅在某个要素确实不适用时省略或标记 `-`，不得使用空泛语句占位。
 按功能树继续展开全部叶子功能，不因篇幅压缩、抽样或转移至附录。
 
 # 8. 外部系统协同需求说明
@@ -287,8 +300,8 @@ flowchart TD
 
 正式基线中不得保留阻断事项。未确认草案可以临时列出阻断事项，但必须明确标记，且不得与正文中的确定性规则冲突。
 
-| 编号 | 归属需求单元 | 来源依据 | 当前基线结论 | 不影响当前基线的原因 | 确认主体 | 后续处理条件 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| 待确认编号 | 关联模块 | 关联需求 | 问题类型 | 来源依据 | 当前基线处理 | 是否阻断 | 后续处理条件 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 # 10. 附录
 
@@ -317,3 +330,7 @@ Markdown comments:
 
 These comments are assembly markers. They do not replace chapter headings,
 requirement IDs, cross-references, or visible product content.
+They stay in `chapters/` source fragments only; the formal `FULL-PRD.md` must
+strip them and contain clean product prose.
+Assemble the final file as `<prd-workspace>/FULL-PRD.md`. Do not place the final
+output inside `chapters/`, because `chapters/` is the frozen source directory.
