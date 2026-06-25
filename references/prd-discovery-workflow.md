@@ -18,7 +18,9 @@ Use this workflow for every complete PRD task. It controls material ingestion, v
 12. Pending-Item Control
 13. Context Recovery
 14. Lossless Assembly
-15. Formal Baseline Gates
+15. Quality Validation
+16. Formal Baseline Gates
+17. Trace-Driven Skill Iteration
 
 ## 1. Capability And Target Check
 
@@ -96,8 +98,12 @@ final filename
 Suggested filename:
 
 ```text
-<系统名称>PRD-<版本号>_完整版_<正式标记>_<YYYYMMDD>.md
+<系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
+
+This product-named file is the only formal Full PRD output and the canonical
+baseline for future incremental upgrades. Do not generate a separate fixed-name
+baseline or a second product-named copy.
 
 ## 2. Mode And Processing-Depth Selection
 
@@ -166,7 +172,7 @@ prd-workspace/
 │   ├── 09-pending.md
 │   └── 10-appendix.md
 ├── ASSEMBLY-MANIFEST.md
-└── FULL-PRD.md
+└── <系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
 
 ### 3.1 Required artifacts by mode
@@ -174,10 +180,15 @@ prd-workspace/
 | Mode | Required | Conditional |
 | --- | --- | --- |
 | 多材料基线重建 | material index, requirement ledger, current system map, coverage matrix, needed requirement-unit packs, chapter fragments, assembly manifest | source extracts, migration ledger |
-| 单文档重构 | migration ledger, current system map, coverage matrix, chapter fragments, assembly manifest | requirement ledger, extracts, requirement-unit packs only for rewritten content |
+| 单文档重构 | migration ledger, current system map, coverage matrix, chapter fragments, assembly manifest | requirement ledger, extracts, requirement-unit packs for rewritten/completed content and synthesized story/function/collaboration coverage |
 | 基线增量升级 | baseline registration, change set, impact analysis, target-version working copy, chapter fragments, assembly manifest | affected requirement-unit packs, local ledger, version diff |
 
 Clean input must not be atomized merely to make every artifact exist.
+Clean input also must not be collapsed into one catch-all artifact when the
+target output requires complete user stories, function details, or external
+collaboration. If Chapter 6, 7, or 8 text is newly synthesized, each covered
+function or small related batch needs a requirement-unit record even when the
+source was a single document.
 
 ### 3.2 `PRD-CONTROL.md`
 
@@ -419,6 +430,19 @@ pending product questions
 confirmation record
 ```
 
+Minimum closure rule:
+
+```text
+one current leaf function or explicitly related small batch
+-> one function pack or recorded direct-migration disposition
+-> complete Chapter 6/7/8 coverage or justified not-applicable
+-> quality-reviewed frozen body block
+```
+
+Do not replace function packs with a single `ALL-FUNCTIONS`, `scaffold`, or
+chapter-sized migration block when any new story, product behavior, exception,
+external collaboration, or acceptance text is synthesized.
+
 ### 6.2 Global rule unit
 
 Use a global rule unit when a rule cannot reasonably belong to one function and constrains multiple functions or chapters.
@@ -488,6 +512,8 @@ Content blocks are the confirmation and freeze unit.
 
 ### 7.1 Stable boundary
 
+Block markers are used only inside frozen source files under `chapters/`:
+
 ```html
 <!-- PRD-BLOCK:<block-id> START -->
 confirmed body content
@@ -495,6 +521,7 @@ confirmed body content
 ```
 
 Block IDs do not change because a heading is renamed or moved.
+The assembled formal Full PRD file must not contain these markers.
 
 ### 7.2 Legal states
 
@@ -575,6 +602,41 @@ acceptance
 One story may cover several continuous leaf functions only when the coverage matrix records the relationship. A non-user-operated capability must state why a story is not applicable and where its behavior is specified.
 
 Do not classify stories to justify omission or compression.
+
+### 8.4 Product-facing confirmation
+
+Ask product to confirm product conclusions only. Do not ask product to approve
+internal state names such as candidate blocks, chapter fragments, hashes,
+manifest rows, or freeze transitions.
+
+Every product-facing confirmation round states:
+
+```text
+current product scope
+effective product conclusions to write
+behavior-changing differences or conflicts
+questions that affect scope, role, flow, state, data, external boundary, or acceptance
+```
+
+Internal workflow terms stay in process files and progress updates. If a
+confirmation pack is written to disk, the conversation still summarizes the
+product decisions so the product manager does not have to inspect multiple
+files to know what to confirm.
+
+### 8.5 Authorized default confirmation
+
+If product explicitly authorizes default confirmation for future questions:
+
+1. Record the authorization in `PRD-CONTROL.md`.
+2. Continue the same requirement-unit loop without waiting for each reply.
+3. For every simulated confirmation, record the source, product conclusion,
+   and `确认方式：按用户授权默认确认`.
+4. Do not downgrade to direct generation, bulk migration, or a one-shot
+   scaffold. The count of covered units must still close.
+5. If the source has a behavior-changing ambiguity, choose the conservative
+   interpretation supported by current source evidence and record it as an
+   authorized default decision. If no source-backed interpretation exists,
+   keep a blocking item and do not mark a formal baseline.
 
 ## 9. Multi-Material Baseline Reconstruction
 
@@ -657,6 +719,16 @@ Rules:
 6. If original prose already meets target meaning and quality, copy it directly into the target chapter block.
 7. For directly migrated prose, the requirement-unit pack records mapping and impact only; it must not paraphrase it.
 8. Unclear ownership or meaning goes to product confirmation.
+9. If Chapter 6 stories are generated from a function list, each story must be
+   concrete enough to pass Chapter 6 completeness rules; placeholders such as
+   `按具体功能判断` or `按权限完成...相关业务操作` are not migration.
+10. If Chapter 7 keeps original prose for traceability, remove source-only
+    scaffolding from the formal body or move it to a confirmed appendix; do not
+    leave `源文档依据`, OCR notes, raw HTML styles, or source chapter labels as
+    substitutes for product requirements.
+11. A single catch-all block for all functions is allowed only for an
+    unconfirmed migration draft. A formal baseline must split rewritten or
+    synthesized behavior by function/global-rule unit.
 
 Complete migration only when no valid original content remains without a destination or explicit disposition.
 
@@ -816,6 +888,8 @@ Rules:
 - Every registered block appears once.
 - Formal body text outside registered blocks is forbidden.
 - If a table of contents is required, generate and register it as a derived block before assembly.
+- The final `--output` path must be inside the PRD workspace but outside `chapters/`; it must not overwrite `ASSEMBLY-MANIFEST.md` or any registered source file.
+- The final formal Full PRD file contains only clean product prose; `PRD-BLOCK` comments remain in `chapters/` for source verification and are stripped from formal output.
 
 ### 14.2 Formal assembly
 
@@ -825,10 +899,13 @@ Run:
 python3 <skill-dir>/scripts/assemble_prd.py \
   --workspace <prd-workspace> \
   --manifest <prd-workspace>/ASSEMBLY-MANIFEST.md \
-  --output <prd-workspace>/FULL-PRD.md
+  --output <prd-workspace>/<系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
 
 Manual model concatenation is an unverified draft, not a formal baseline.
+If a copy outside the workspace is needed, first assemble and verify the single
+formal Full PRD file in the workspace, then copy that verified file separately
+without treating the copy as a second baseline.
 
 The assembler validates:
 
@@ -836,33 +913,75 @@ The assembler validates:
 manifest shape
 legal states
 source under chapters/
+output inside workspace and outside chapters/
 unique block IDs and order
 exact markers
 source hash
 final order
-final hash
+final clean body equals registered source-block content after marker removal
+no internal block markers in final output
 no duplicate or unregistered body
 ```
 
 It must not generate, summarize, renumber, or rewrite product prose.
+After assembly, run the assembler again with `--check-existing` to verify the
+persisted final file still matches the registered source blocks.
 
-## 15. Formal Baseline Gates
+## 15. Quality Validation
+
+Run quality validation before marking a formal baseline:
+
+```bash
+python3 <skill-dir>/scripts/validate_prd_quality.py \
+  --final <prd-workspace>/<系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md \
+  --manifest <prd-workspace>/ASSEMBLY-MANIFEST.md
+```
+
+The validator is a guardrail, not a writer. It checks for formal-output
+failures such as:
+
+```text
+missing or duplicate required chapters
+empty required chapter bodies
+chapter titles that do not match the fixed 0-10 model
+extra formal chapters outside 0-10
+placeholder numbering such as 4.x, 5.x, 7.x
+process wording leaked into the final body
+vague substitutes for real requirements
+catch-all scaffold or ALL-FUNCTIONS manifest entries
+Chapter 6 lacking stable US- stories or F- function references
+Chapter 7 lacking F- function IDs, entry, fields/pages, rules, exceptions, and acceptance detail
+Chapter 8 lacking EXT- collaboration IDs and responsibility split when external collaboration exists
+```
+
+If validation fails:
+
+1. Treat the failing items as feedback on the controlled output.
+2. Return only the affected requirement units or derived chapter shells to
+   `待确认`.
+3. Fix the underlying function/global-rule content or final chapter structure.
+4. Re-freeze, reassemble, and rerun quality validation.
+
+Do not silence the validator by deleting product requirements. Fix the prose,
+structure, or requirement-unit coverage that caused the failure.
+
+## 16. Formal Baseline Gates
 
 Use mode-equivalent evidence; do not require identical intermediate artifacts.
 
-### 15.1 Material completeness
+### 16.1 Material completeness
 
 - All declared sources are registered.
 - All planned blocks, partitions, tables, image explanations, and attachments are processed or explicitly excluded.
 - Unprocessed or excluded content has a reason.
 
-### 15.2 Requirement completeness
+### 16.2 Requirement completeness
 
 - Every planned requirement/content block/change item has a stable ID and source location.
 - Every item enters body content, explicit exclusion, confirmed deletion, or a non-blocking tracking state.
 - No current effective requirement has no destination.
 
-### 15.3 Version completeness
+### 16.3 Version completeness
 
 | Mode | Pass condition |
 | --- | --- |
@@ -870,28 +989,28 @@ Use mode-equivalent evidence; do not require identical intermediate artifacts.
 | 单文档重构 | Revision information and current prose do not conflict; unrecoverable history is not invented |
 | 基线增量升级 | Existing baseline, iteration version, complete change set, and target version form a closed relation |
 
-### 15.4 Structure completeness
+### 16.4 Structure completeness
 
 - Product confirmed the current system map.
 - Every current leaf function enters Chapter 7.
 - Page, task, operation, and rule distinctions are not lost through directory merging.
 - Function split, merge, move, and delete relations are traceable.
 
-### 15.5 Story completeness
+### 16.5 Story completeness
 
 - Every user-operable current leaf function maps to a complete Chapter 6 story/path.
 - Every story maps to Chapter 7.
 - External collaboration stories also map to Chapter 8.
 - Story-not-applicable capabilities state the reason and other specification location.
 
-### 15.6 Cross-chapter completeness
+### 16.6 Cross-chapter completeness
 
 - Every requirement unit has a complete Chapter 0-10 impact row.
 - Role, scope, flow, state, story, function, external collaboration, and acceptance do not contradict.
 - All planned changed blocks are confirmed and frozen.
 - All untouched baseline blocks are marked inherited.
 
-### 15.7 Content quality
+### 16.7 Content quality
 
 Every new or changed leaf function states, when applicable:
 
@@ -920,6 +1039,67 @@ verifiable result
 
 Do not use `支持相关操作`, `按需展示`, `进行优化`, `异常时提示`, or `其他规则同上` as substitutes for actual requirements.
 
-### 15.8 Assembly completeness
+### 16.8 Assembly completeness
 
 The deterministic assembler must return success. Any illegal state, outside source, duplicate ID/order, missing marker, hash mismatch, order mismatch, or unregistered body blocks formal delivery.
+
+### 16.9 Assembly and quality completeness
+
+- The deterministic assembler returns success.
+- The quality validator returns success.
+- Manifest rows do not use `ALL-FUNCTIONS`, `scaffold.md`, or chapter-sized
+  catch-all blocks to represent synthesized Chapter 6/7/8 function behavior.
+- The final file has one coherent Chapter 0-9 structure, not repeated chapter
+  sequences from intermediate rounds.
+- Every required Chapter 0-9 section contains formal body content, not only a
+  heading, placeholder, or future-completion note.
+
+## 17. Trace-Driven Skill Iteration
+
+Use this section when reviewing product-manager usage traces to improve the
+Skill. Treat traces as feedback about the Skill's control loop, not as isolated
+conversation anecdotes.
+
+### 17.1 Classify each trace signal
+
+| Signal | Meaning | Likely control fix |
+| --- | --- | --- |
+| Product asks "what should I confirm?" | Confirmation contract is too process-heavy | Rewrite confirmation prompts to product conclusions |
+| Product says output is too shallow | Requirement-unit granularity or Chapter 7 depth failed | Add anti-summary gate, tests, or examples |
+| Product corrects scope, role, state, or boundary | Missing blocker or conflict surfaced late | Add earlier confirmation or source-sufficiency check |
+| Product asks about file name or delivery target | Final identity contract is unclear | Tighten single-file formal naming rules |
+| Agent resumes at wrong point | Recovery state is under-specified | Strengthen PRD-CONTROL precedence and state schema |
+| Validator passes but product rejects readability | Quality validator is missing a presentation rule | Add a validator case from the trace |
+
+### 17.2 Convert trace issues into regression artifacts
+
+For each recurring failure:
+
+1. Record the user-visible symptom and the exact output boundary that failed.
+2. Identify the controlled variable: confirmation clarity, requirement depth,
+   chapter structure, index traceability, file identity, recovery, or validation.
+3. Decide whether the fix belongs in `SKILL.md`, `references/`, or `scripts/`.
+4. Add or update one deterministic validation case when the failure can be
+   mechanically detected.
+5. Keep subjective writing guidance in references; keep fragile structural
+   checks in scripts.
+
+Do not add every trace complaint to `SKILL.md`. The main Skill should contain
+only high-level invariants and workflow. Detailed chapter/readability rules live
+in `references/full-prd-chapter-rules.md`; deterministic checks live in
+`scripts/validate_prd_quality.py`.
+
+### 17.3 Iteration convenience check
+
+Before shipping a revised Skill after trace feedback, verify:
+
+```text
+main invariants still fit in SKILL.md
+new detailed rules are placed in the right reference file
+new validator cases pass
+at least one previous good PRD still passes quality validation
+at least one known bad trace output now fails or is explicitly accepted
+```
+
+This keeps the Skill learnable for product managers while allowing the internal
+control system to become stricter over time.

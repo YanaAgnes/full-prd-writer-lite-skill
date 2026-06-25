@@ -95,6 +95,29 @@ def source_path(workspace: Path, relative: str) -> Path:
     return candidate
 
 
+def is_within(path: Path, directory: Path) -> bool:
+    return path == directory or directory in path.parents
+
+
+def validate_output_path(
+    workspace: Path, manifest: Path, output: Path, entries: list[Entry]
+) -> Path:
+    resolved_output = output.resolve()
+    chapters = (workspace / "chapters").resolve()
+
+    if not is_within(resolved_output, workspace):
+        raise AssemblyError(f"output is outside workspace: {output}")
+    if is_within(resolved_output, chapters):
+        raise AssemblyError(f"output cannot be inside chapters/: {output}")
+    if resolved_output == manifest:
+        raise AssemblyError("output cannot overwrite the manifest")
+
+    source_paths = {source_path(workspace, entry.source_file) for entry in entries}
+    if resolved_output in source_paths:
+        raise AssemblyError("output cannot overwrite a registered source file")
+    return resolved_output
+
+
 def extract_block(text: str, block_id: str) -> tuple[str, str]:
     start = f"<!-- PRD-BLOCK:{block_id} START -->"
     end = f"<!-- PRD-BLOCK:{block_id} END -->"
@@ -116,38 +139,32 @@ def digest(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def expected_blocks(workspace: Path, entries: list[Entry]) -> list[str]:
-    blocks: list[str] = []
+def expected_contents(workspace: Path, entries: list[Entry]) -> list[str]:
+    contents: list[str] = []
     for entry in entries:
         text = source_path(workspace, entry.source_file).read_text(encoding="utf-8")
-        content, complete = extract_block(text, entry.block_id)
+        content, _complete = extract_block(text, entry.block_id)
         actual = digest(content)
         if actual != entry.sha256:
             raise AssemblyError(
                 f"hash mismatch for {entry.block_id}: "
                 f"expected {entry.sha256}, got {actual}"
             )
-        blocks.append(complete)
-    return blocks
+        contents.append(content)
+    return contents
 
 
-def verify_final(text: str, entries: list[Entry]) -> None:
-    registered = [entry.block_id for entry in entries]
+def clean_output(contents: list[str]) -> str:
+    return "\n\n".join(contents) + "\n"
+
+
+def verify_final(text: str, workspace: Path, entries: list[Entry]) -> None:
     scanned = BLOCK_SCAN_RE.findall(text)
-    if scanned != registered:
-        raise AssemblyError(
-            f"final block order/content mismatch: expected {registered}, got {scanned}"
-        )
-    if len(scanned) != len(set(scanned)):
-        raise AssemblyError("final document contains duplicate blocks")
-    remaining = text
-    for entry in entries:
-        content, complete = extract_block(text, entry.block_id)
-        if digest(content) != entry.sha256:
-            raise AssemblyError(f"final hash mismatch for {entry.block_id}")
-        remaining = remaining.replace(complete, "", 1)
-    if remaining.strip():
-        raise AssemblyError("final document contains unregistered body text")
+    if scanned:
+        raise AssemblyError(f"final document exposes internal block markers: {scanned}")
+    expected = clean_output(expected_contents(workspace, entries))
+    if text != expected:
+        raise AssemblyError("final document content differs from registered source blocks")
 
 
 def main() -> int:
@@ -160,14 +177,16 @@ def main() -> int:
 
     try:
         workspace = args.workspace.resolve()
-        entries = parse_manifest(args.manifest.resolve())
+        manifest = args.manifest.resolve()
+        entries = parse_manifest(manifest)
+        output = validate_output_path(workspace, manifest, args.output, entries)
         if args.check_existing:
-            verify_final(args.output.read_text(encoding="utf-8"), entries)
+            verify_final(output.read_text(encoding="utf-8"), workspace, entries)
         else:
-            blocks = expected_blocks(workspace, entries)
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
-            verify_final(args.output.read_text(encoding="utf-8"), entries)
+            contents = expected_contents(workspace, entries)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(clean_output(contents), encoding="utf-8")
+            verify_final(output.read_text(encoding="utf-8"), workspace, entries)
     except (AssemblyError, OSError, ValueError) as exc:
         print(f"ASSEMBLY_FAILED: {exc}", file=sys.stderr)
         return 1

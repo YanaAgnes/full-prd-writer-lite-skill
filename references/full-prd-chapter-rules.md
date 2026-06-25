@@ -85,18 +85,17 @@ Hard relations:
 
 ### 2.1 Final file identity
 
-Every formal workspace keeps two file identities:
+Every formal workspace produces exactly one formal Full PRD file:
 
 ```text
-FULL-PRD.md
-产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md
+<prd-workspace>/产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md
 ```
 
-- `FULL-PRD.md` is the canonical baseline for assembly checks and future
-  incremental upgrades.
-- The product-named file is the delivery export for human review.
-- Future incremental work merges into the canonical baseline structure, not into
-  an old delivery export.
+- This product-named file is the canonical baseline for assembly checks, human
+  review, and future incremental upgrades.
+- Do not generate a separate fixed-name baseline plus a product-named copy.
+- Future incremental work merges into this formal Full PRD's `chapters/` and
+  manifest structure, not into a second copy.
 - Use `待产品确认版`, `产品确认版`, or `正式基线候选` unless product explicitly
   confirms a true `正式版`.
 
@@ -164,13 +163,12 @@ Keep source latest version, existing baseline version, iteration version, and ta
 Recommended additional rows when delivering a formal baseline:
 
 ```text
-基线文件
-交付文件
+正式文件
 文件身份说明
 ```
 
-Use them to distinguish canonical baseline from delivery export when the
-document is generated in a persistent PRD workspace.
+Use them to state that the product-named Full PRD is the only formal output and
+canonical baseline when the document is generated in a persistent PRD workspace.
 
 ### 3.3 Chapter 2: 系统概述
 

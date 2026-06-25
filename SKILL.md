@@ -30,9 +30,9 @@ rather than fast one-shot generation.
 - 产品经理负责收口所有会改变当前产品基线的问题。
 - 已确认正文写入章节分片后冻结；正式文件只从冻结或基线继承正文块原样装配。
 - 最终拼装不得重新概括、扩写、补写或修改冻结正文。
-- 正式 `FULL-PRD.md` 必须是干净产品正文，不得暴露 `PRD-BLOCK` 标记或其他内部装配标记。
-- `chapters/` 只保存冻结正文唯一真源；正式输出写为工作区根部 `FULL-PRD.md`，不得输出到 `chapters/` 或覆盖清单/源分片。
-- `FULL-PRD.md` 是可重装配的 canonical baseline；面向人交付时另存产品化命名副本，不得把中文交付副本作为后续增量合入源。
+- 正式 Full PRD 文件必须是干净产品正文，不得暴露 `PRD-BLOCK` 标记或其他内部装配标记。
+- `chapters/` 只保存冻结正文唯一真源；正式输出写为工作区根部的产品命名 Full PRD 文件，不得输出到 `chapters/` 或覆盖清单/源分片。
+- 正式 Full PRD 文件本身是可重装配的 canonical baseline；不得同时维护固定名基线与产品命名副本两套正式文件。
 - 面向评审的正式 PRD 必须读起来像一份完整文档，不得把 `F-USER-001`、`F-KB-001` 等需求单元标题直接串成第 6、7、8、9 章二级目录。
 - 正式 PRD 必须保持 `M- / US- / F- / EXT- / PEND-` 五类索引闭环，并在正文中能从模块追到用户故事、功能、外部协同和待确认项。
 - 第 0-9 章不能只有标题或空壳；每章必须有可评审的正式正文。
@@ -102,7 +102,7 @@ rather than fast one-shot generation.
 -> 确认系统能力地图和全局规则
 -> 按需求单元分轮确认并冻结正文块
 -> 再次确认最终文档身份
--> 确认 canonical baseline 与交付副本命名
+-> 确认正式 Full PRD 文件名
 -> 确定性装配和校验
 -> 正文质量校验
 ```
@@ -156,18 +156,17 @@ rather than fast one-shot generation.
 
 ### Final Document Presentation Contract
 
-最终文档有两个身份：
+最终只生成一个正式 Full PRD 文件：
 
 ```text
-<prd-workspace>/FULL-PRD.md
-产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md
+<prd-workspace>/产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md
 ```
 
-- `FULL-PRD.md` 是 canonical baseline，用于装配校验、哈希追踪和后续增量升级。
-- 产品化命名副本是 delivery export，用于评审、研发和测试阅读。
-- 后续版本合入 `FULL-PRD.md` 体系，不直接合入 delivery export。
+- 该文件是唯一正式 Full PRD，也是 canonical baseline，用于装配校验、哈希追踪、评审阅读和后续增量升级。
+- 不额外生成固定名基线文件，也不生成产品命名副本。
+- 后续版本合入该正式 Full PRD 对应的 `chapters/` 与清单体系，不从另一个副本合入。
 - 文件状态优先使用 `待产品确认版`、`产品确认版`、`正式基线候选`；只有产品明确确认且无阻断项时才使用 `正式版`。
-- 最终装配前必须确认或生成这两个身份；最终回复同时说明二者关系。
+- 最终装配前必须确认系统名称、版本号、状态、基线日期、生成日期和正式 Full PRD 文件名。
 
 正式正文的阅读结构：
 
@@ -202,7 +201,7 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 8. 生成该需求单元对第 0-10 章的候选正文块，由产品分批确认。
 9. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
 10. 完成全部计划内需求单元后，执行完整性和内容质量闸门。
-11. 再次确认系统名称、版本号、基线日期、正式标记、生成日期、canonical baseline 和 delivery export 文件名。
+11. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和正式 Full PRD 文件名。
 12. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配干净正式文件。
 13. 使用 `scripts/assemble_prd.py --check-existing` 和 `scripts/validate_prd_quality.py` 检查正式文件一致性与正文质量。
 14. 装配、质量、覆盖和跨章节检查全部通过后，才可标记为正式基线。
@@ -257,9 +256,9 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 - `scripts/assemble_prd.py` 返回通过结果。
 - `scripts/assemble_prd.py --check-existing` 返回通过结果。
 - `scripts/validate_prd_quality.py` 返回通过结果。
-- `FULL-PRD.md` 位于 PRD 工作区根部，不污染 `chapters/` 冻结源目录。
-- `FULL-PRD.md` 不包含 `PRD-BLOCK` 或其他内部装配标记。
-- 正式文档存在清晰的 delivery export 命名或已明确说明只交付 canonical baseline。
+- 正式 Full PRD 文件位于 PRD 工作区根部，不污染 `chapters/` 冻结源目录。
+- 正式 Full PRD 文件不包含 `PRD-BLOCK` 或其他内部装配标记。
+- 正式文档使用清晰的产品命名文件名，并且只存在一个正式 Full PRD 输出。
 - 第 6、7、8、9 章的二级目录是阅读结构，不是需求单元文件名列表。
 - `M- / US- / F- / EXT- / PEND-` 索引能相互追踪，且待确认项不会与正文确定性规则冲突。
 - 第 0-9 章均包含正式正文；不能以空章节、占位章节或待补说明占位。

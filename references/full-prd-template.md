@@ -5,7 +5,7 @@ Use this file only as the final Markdown output shape. Follow
 
 All `x`, `xxx`, and example IDs below are placeholders. Replace them with
 final continuous numbering and stable IDs before freezing formal body blocks.
-No placeholder numbering may remain in `FULL-PRD.md`.
+No placeholder numbering may remain in the formal Full PRD file.
 
 ````markdown
 > 仅当用户明确要求跳过确认并直接生成时保留本提示：
@@ -37,9 +37,8 @@ No placeholder numbering may remain in `FULL-PRD.md`.
 | 作者 |  |
 | 适用范围 |  |
 | 关联材料 |  |
-| 基线文件 | FULL-PRD.md |
-| 交付文件 | 产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md |
-| 文件身份说明 | FULL-PRD.md 为可重装配基线；交付文件为同内容阅读副本。 |
+| 正式文件 | 产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md |
+| 文件身份说明 | 本文件为唯一正式 Full PRD，也是可重装配基线。 |
 
 # 2. 系统概述
 
@@ -330,7 +329,9 @@ Markdown comments:
 
 These comments are assembly markers. They do not replace chapter headings,
 requirement IDs, cross-references, or visible product content.
-They stay in `chapters/` source fragments only; the formal `FULL-PRD.md` must
+They stay in `chapters/` source fragments only; the formal Full PRD file must
 strip them and contain clean product prose.
-Assemble the final file as `<prd-workspace>/FULL-PRD.md`. Do not place the final
-output inside `chapters/`, because `chapters/` is the frozen source directory.
+Assemble the final file as
+`<prd-workspace>/产品名PRD-版本_完整版_状态_基线YYYYMMDD_生成YYYYMMDD.md`.
+Do not place the final output inside `chapters/`, because `chapters/` is the
+frozen source directory.

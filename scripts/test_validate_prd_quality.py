@@ -16,7 +16,7 @@ class ValidatePrdQualityTest(unittest.TestCase):
     def run_validator(self, final_text: str, manifest_text: str | None = None):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
-            final = workspace / "FULL-PRD.md"
+            final = workspace / "示例系统PRD-V1.0_完整版_正式基线候选_基线20260625_生成20260625.md"
             final.write_text(textwrap.dedent(final_text).strip() + "\n", encoding="utf-8")
             cmd = [sys.executable, str(SCRIPT), "--final", str(final)]
             if manifest_text is not None:
