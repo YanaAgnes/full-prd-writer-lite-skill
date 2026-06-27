@@ -21,6 +21,7 @@ Use this workflow for every complete PRD task. It controls material ingestion, v
 15. Quality Validation
 16. Formal Baseline Gates
 17. Trace-Driven Skill Iteration
+18. Engineering Lifecycle Hook
 
 ## 1. Capability And Target Check
 
@@ -101,9 +102,9 @@ Suggested filename:
 <系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
 
-Also keep `<prd-workspace>/FULL-PRD.md` as the canonical baseline. The
-product-named file is a delivery export, not the source for future incremental
-upgrades.
+This product-named file is the only formal Full PRD output and the canonical
+baseline for future incremental upgrades. Do not generate a separate fixed-name
+baseline or a second product-named copy.
 
 ## 2. Mode And Processing-Depth Selection
 
@@ -156,13 +157,33 @@ The following is the logical maximum workspace. Create only what the selected mo
 prd-workspace/
 ├── PRD-CONTROL.md
 ├── source-ledger/
+│   ├── source-inventory.md
 │   ├── material-index.md
 │   ├── requirement-ledger.md
 │   ├── migration-ledger.md
+│   ├── applicability-matrix.md
+│   ├── permission-ledger.md
+│   ├── structure-decision-record.md
+│   ├── cross-cutting-rule-ledger.md
+│   ├── migration-preservation-check.md
+│   ├── function-inventory-ledger.md
+│   ├── function-code-policy.md
+│   ├── trace-issue-taxonomy.md
+│   ├── form-detail-ledger.md
+│   ├── message-notification-ledger.md
+│   ├── object-lifecycle-ledger.md
+│   ├── derived-list-time-rule-ledger.md
 │   ├── current-system-map.md
 │   ├── coverage-matrix.md
 │   └── extracts/
 ├── function-packs/
+│   └── <requirement-unit>/
+│       ├── source-evidence.md
+│       ├── source-extract.md
+│       ├── local-anchor-contract.md
+│       ├── chapter-block.md
+│       ├── consumption-map.md
+│       └── local-gate-report.md
 ├── global-packs/
 ├── chapters/
 │   ├── 00-05-global.md
@@ -172,16 +193,56 @@ prd-workspace/
 │   ├── 09-pending.md
 │   └── 10-appendix.md
 ├── ASSEMBLY-MANIFEST.md
-└── FULL-PRD.md
+└── <系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
+
+For Gold Set-like or otherwise high-risk units, scaffold the pack before
+drafting local prose:
+
+```bash
+python3 scripts/init_requirement_unit_pack.py \
+  --root prd-workspace \
+  --unit <requirement-unit> \
+  --gate <form-detail|workflow-permission-message|object-lifecycle|derived-list-time-rule>
+```
+
+If the runtime cannot execute the script, create the same files manually using
+`references/requirement-unit-pack-templates.md`.
+
+When a filesystem and Python runtime are available, initialize the workspace
+through the lifecycle hook:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py init-workspace \
+  --workspace prd-workspace \
+  --source <source-document> \
+  --system-name <system-name> \
+  --target-version <version>
+```
+
+The hook creates control files and ledgers only. Hook 不生成 PRD 正文.
+
+After the function inventory coverage gate passes, initialize the canonical
+leaf-function queue through the same lifecycle hook:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py init-leaf-queue \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+```
+
+This creates `TO-CHECK-FUNCTIONS.md` and `function-packs/<F-ID>/` skeletons.
+It is mandatory for full PRD generation and baseline incremental upgrades when
+local execution is available. A one-shot draft, batch merge script, or verbal
+claim that functions are ready does not replace this queue.
 
 ### 3.1 Required artifacts by mode
 
 | Mode | Required | Conditional |
 | --- | --- | --- |
-| 多材料基线重建 | material index, requirement ledger, current system map, coverage matrix, needed requirement-unit packs, chapter fragments, assembly manifest | source extracts, migration ledger |
-| 单文档重构 | migration ledger, current system map, coverage matrix, chapter fragments, assembly manifest | requirement ledger, extracts, requirement-unit packs for rewritten/completed content and synthesized story/function/collaboration coverage |
-| 基线增量升级 | baseline registration, change set, impact analysis, target-version working copy, chapter fragments, assembly manifest | affected requirement-unit packs, local ledger, version diff |
+| 多材料基线重建 | source-inventory, material index, requirement ledger, structure-decision-record, function-inventory-ledger, applicability-matrix, permission-ledger, current system map, coverage matrix, needed requirement-unit packs, chapter fragments, assembly manifest | source extracts, migration ledger, cross-cutting-rule-ledger, migration-preservation-check, source-evidence, local-anchor-contract, chapter-block, consumption-map, local-gate-report |
+| 单文档重构 | source-inventory, migration ledger, structure-decision-record, function-inventory-ledger, current system map, coverage matrix, chapter fragments, assembly manifest | requirement ledger, extracts, requirement-unit packs for rewritten/completed content and synthesized story/function/collaboration coverage, migration-preservation-check, source-evidence, local-anchor-contract, chapter-block, consumption-map, local-gate-report |
+| 基线增量升级 | source-inventory, baseline registration, change set, function-inventory-ledger, applicability-matrix, permission-ledger, impact analysis, target-version working copy, chapter fragments, assembly manifest | affected requirement-unit packs, local ledger, version diff, cross-cutting-rule-ledger, migration-preservation-check, source-evidence, local-anchor-contract, chapter-block, consumption-map, local-gate-report |
 
 Clean input must not be atomized merely to make every artifact exist.
 Clean input also must not be collapsed into one catch-all artifact when the
@@ -209,7 +270,42 @@ next safe action
 
 It is a process artifact and does not enter the final PRD.
 
-### 3.3 Material index
+### 3.3 Source inventory
+
+`source-inventory` is the first material-control artifact. It exists to avoid
+silent baseline mistakes and missing side-materials.
+
+| Source ID | File/material | Material type | Version/date | User-declared role | Discovered role | Include? | Exclusion or risk | Readability |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Material types include:
+
+```text
+formal baseline
+iteration PRD
+meeting note / chat trace
+prototype / screenshot
+attachment / appendix
+Excel / message template
+mobile material
+external system specification
+historical reference
+unknown local candidate
+```
+
+Rules:
+
+1. Ask product to confirm any source whose discovered role conflicts with the
+   user-declared role, especially main baseline versus latest iteration.
+2. Register local materials discovered near the declared source path when their
+   names or headings match the target system, platform, message, mobile, or
+   external-collaboration scope.
+3. Do not ingest unknown local candidates silently. Mark them `pending
+   confirmation` or explicitly excluded.
+4. If a source cannot be read, record it as unreadable and state the affected
+   requirement scope before continuing.
+
+### 3.4 Material index
 
 | Source ID | File/material | Type | Version/date | Applicable scope | Relationship | Part count | State |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -227,7 +323,7 @@ pending confirmation
 
 A source may have different relationships for different functions. Do not assign one whole-document precedence when only a local section changed.
 
-### 3.4 Requirement ledger
+### 3.5 Requirement ledger
 
 | Requirement ID | Requirement unit | Source/location | Version | Original requirement | Change type | Predecessor | Effective state | Conflict | Destination |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -246,7 +342,7 @@ Effective states:
 
 Keep enough original text and location information to recover meaning. The ledger is not a compressed summary.
 
-### 3.5 Migration ledger
+### 3.6 Migration ledger
 
 | Migration ID | Original location | Original content/block | Target chapter/unit | Treatment | State | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -263,7 +359,201 @@ Treatments:
 待确认
 ```
 
-### 3.6 Coverage matrix
+### 3.7 Structure decision record
+
+Create `structure-decision-record` before drafting Chapters 6-8.
+
+| Decision ID | Scope | Candidate structure | Chosen structure | Why | Rejected structures | Product confirmation | Impacted chapters |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+Candidate structures:
+
+```text
+business lifecycle
+page / menu
+business object
+role
+resource type / object type
+workflow state
+external system
+mixed with explicit ownership
+```
+
+Rules:
+
+1. Pick the dimension that lets a reviewer reconstruct the product blueprint.
+2. Resource type / object type can be a subdimension, but cannot become a
+   standalone top-level module when the product lifecycle is shared.
+3. If the user rejects a structure in a trace or review, update this record and
+   migrate affected content through `migration-preservation-check`.
+
+### 3.8 Applicability matrix
+
+Use `applicability-matrix` for every new, modified, or version-overridden rule.
+
+| Rule ID | Source requirement | Resource type / object type | Platform side | Role | Flow/state node | Page/location | Operation | External system | Applies to | Does not apply to | PRD destination |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Rules:
+
+1. A later change applies only to the explicitly targeted object, page, role,
+   platform side, operation, or external collaboration.
+2. When applicability is unclear, preserve the older broader rule and mark the
+   new rule as pending confirmation instead of silently generalizing it.
+3. Chapter 7 and 8 prose must repeat the applicability boundary in product
+   language when misapplication would change behavior.
+
+### 3.9 Permission ledger
+
+Use `permission-ledger` to separate permission types.
+
+| Permission ID | Role | Menu permission | Page/list button permission | Flow-node button permission | Data permission | External platform control permission | Source | Affected functions |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Definitions:
+
+```text
+菜单权限: whether a role can see or enter a menu/page.
+页面/列表按钮权限: whether a role can see, enable, or execute a page operation.
+流程节点按钮权限: workflow/APaaS/BPM-controlled action availability by node.
+数据权限: object, organization, region, owner, or submitted-data scope.
+外部平台控制权限: action ownership held by an external system or engine.
+```
+
+Rules:
+
+1. Chapter 4 summarizes permissions globally; Chapter 7 repeats the concrete
+   page and operation behavior where it affects visible elements.
+2. Do not mix workflow-node buttons into ordinary page/list button permissions.
+3. Do not infer data scope from menu access; data permission requires explicit
+   source or product confirmation.
+
+### 3.10 Cross-cutting rule ledger
+
+Use `cross-cutting-rule-ledger` for rules that constrain multiple pages,
+functions, detail sections, external collaborations, or messages.
+
+| Rule ID | Rule name | Source | Rule type | Applies to functions/pages | Detail destinations | Message / external destinations | Local exceptions | Acceptance impact |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Rule types include:
+
+```text
+attachment
+message notification
+evaluation / report
+common navigation
+shared field behavior
+shared status display
+external jump / return
+resource-instance display
+audit / record
+```
+
+The final PRD may keep a global rule unit, but each affected Chapter 7 or 8
+function must still contain or reference the concrete local behavior.
+
+### 3.11 Migration preservation check
+
+Use `migration-preservation-check` whenever accepted prose, detailed content,
+or an independent PRD is moved into another structure.
+
+| Check ID | Accepted content source | Target location | Preservation unit | Required detail anchors | Result | Missing / changed details | Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+Rules:
+
+1. 已接受详细内容 is evidence. Do not re-summarize it during copy-into,
+   renumbering, or chapter migration.
+2. 结构迁移不得重新摘要. It may rename headings, move paragraphs, split tables,
+   or add cross-references, but it must not reduce fields, buttons, prompts,
+   validation, status, permissions, external paths, messages, or acceptance.
+3. If the target document has a different structure, migrate detail anchors
+   first, then polish wording.
+
+### 3.12 Function code policy
+
+Use `function-code-policy` to decide stable IDs.
+
+| Candidate | Code? | Prefix | Reason | Parent / owner | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+Rules:
+
+1. Assign `F-` only to real functions, list pages, detail pages, create/edit
+   pages, key business actions, or global product rules that need traceability.
+2. Do not assign `F-` to parent categories, ordinary field rules, validation
+   rows, prompts, or acceptance rows unless they are independently reusable
+   global product rules.
+3. Child rules inherit the owning `F-` and use local rule IDs when necessary.
+4. Keep `US- / F- / EXT- / PEND-` references consistent across Chapters 6-9.
+
+### 3.13 Function inventory coverage gate
+
+Run `function-inventory-coverage-gate` before creating or updating the Function
+总览检查表 and Chapter 7 功能结构总览. The gate exists to catch functions that
+are visible in architecture, OCR, summary, role, or permission material but do
+not have a rich detailed-function section yet.
+
+Create `function-inventory-ledger.md`:
+
+| Candidate ID | Normalized function | Source-location | Source type | Evidence | Coverage disposition | Function ID | Target section | Pending ID | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Candidate sources must include, where present:
+
+```text
+目录 / TOC
+功能架构 diagrams or OCR text
+功能汇总 tables
+角色权限 / 菜单权限 descriptions
+detailed body headings
+screenshot text or prototype OCR
+attachment and appendix indexes
+```
+
+Coverage disposition values:
+
+```text
+include-in-overview
+merge-into-existing-function
+explicit-exclusion
+pending-for-product-confirmation
+```
+
+Rules:
+
+1. Do not build the leaf-function list only from detailed body headings.
+2. A candidate function must not disappear because it is marked 待定, has 正文缺失,
+   comes only from OCR, or lacks a full detailed section. It must be listed in
+   the Function 总览检查表 as To Generate, mapped to an existing `F-`, explicitly
+   excluded with reason, or converted into a `PEND-` item.
+3. When included, the Function 总览检查表 and Chapter 7 功能结构总览 must preserve
+   its `source-location` and coverage disposition until product confirms or
+   generation is complete.
+4. Role-only, menu-only, or OCR-only candidates may still receive a stable `F-`
+   if the product exposes them as leaf functions. If the product boundary is
+   unclear, use pending-for-product-confirmation, not silent deletion.
+5. Reconcile `function-inventory-ledger`, Function 总览检查表, Chapter 7 功能结构总览,
+   `function-code-policy`, and `coverage-matrix` before declaring Chapter 7
+   complete.
+6. Run the engineering hook before the leaf loop:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py validate-function-coverage \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+
+python3 scripts/prd_lifecycle_hook.py init-leaf-queue \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+```
+
+没有通过 coverage gate，不得进入 leaf loop. 工程 Hook 负责阻断 this class of
+coverage failure so conversation state or context compression cannot silently
+skip a candidate function.
+
+### 3.14 Coverage matrix
 
 | Function ID | Function | Source requirements | Roles | Stories | Flow/state | Chapter 7 | Chapter 8 | Acceptance | State |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -278,7 +568,58 @@ source requirement
 -> acceptance
 ```
 
-It does not replace the 0-10 impact index.
+It does not replace the 0-10 impact index or `function-inventory-ledger`.
+
+### 3.15 Evidence-locked local fidelity loop
+
+High-risk requirement units use an evidence-locked local loop before prose can
+enter `chapters/`.
+
+| Artifact | Purpose | Constraint |
+| --- | --- | --- |
+| `source-evidence.md` | Locked evidence set for one requirement unit | Preserve verbatim or table-preserving source content with stable source IDs and locations; do not replace with prose summary |
+| `source-extract.md` | Working extraction and grouping | May reorganize evidence, but cannot override or replace `source-evidence` |
+| `local-anchor-contract.md` | Required local prose anchors | Generated from fixed gate profile plus requirement-unit evidence; missing-source anchors become pending items, not silent omissions |
+| `chapter-block.md` | Candidate prose for Chapter 6/7/8/9 | Must consume every required local anchor or state `不涉及` / pending explicitly |
+| `consumption-map.md` | Trace from evidence and ledgers into local prose | Record `source-evidence -> ledger row -> local anchor -> chapter-block section` |
+| `local-gate-report.md` | Local fidelity verdict | Record `pass / fail`, missing anchors, weak anchors, and global-only anchors |
+
+Rules:
+
+1. `source-evidence` is mandatory for Gold Set-like or otherwise high-risk
+   requirement units. A later `source-extract` may compress for working
+   convenience, but fidelity is judged against `source-evidence`.
+2. `local-anchor-contract` is required before drafting local prose. Do not let
+   the model decide coverage solely from free-form intuition.
+3. `consumption-map` is required before freezing any high-risk local block.
+4. A requirement-unit local gate failure blocks freeze even when the full PRD
+   still passes global quality checks.
+5. For tooling, `local-anchor-contract.md` uses a machine-readable table with
+   the exact headers `anchor_id | anchor | required_terms | weak_terms`. Use
+   `/` in `required_terms` for required sub-anchors, and ` or ` inside one
+   sub-anchor for acceptable aliases. `weak_terms` may use `/` as a simple list.
+6. For tooling, `consumption-map.md` uses a machine-readable table with the
+   exact headers `anchor_id | chapter_section | evidence_refs | ledger_refs`.
+7. `scripts/validate_requirement_unit_gate.py` is the default local gate
+   implementation for high-risk requirement units.
+8. `scripts/init_requirement_unit_pack.py` is the default scaffold for these
+   artifacts, and `references/requirement-unit-pack-templates.md` is the
+   manual fallback reference.
+
+### 3.16 Gold Slice regression controls
+
+Gold Set v0.1 contains four regression gates. 不要求逐字复制 Gold Slice，但必须覆盖每个 slice 的保真锚点。
+
+| Gate | Trigger | Required anchors | Optional specialized ledger |
+| --- | --- | --- | --- |
+| form-detail gate | create/edit/detail page with many fields, nested forms, or validation rules | 入口、按钮、嵌套表单、字段、展示规则、填写规则 | form-detail-ledger |
+| workflow-permission-message gate | multi-step workflow, approval, responsibility review, message, or external jump | flow-node buttons, menu/page/data/external permissions, detail operations, status changes, message template/trigger/log behavior | message-notification-ledger |
+| object-lifecycle gate | business object or resource moves through association, cancellation, completion, or external state sync | object states, resource types, association rules, external consistency, detail sections | object-lifecycle-ledger |
+| derived-list-time-rule gate | list is generated from state/time rules rather than direct CRUD | list generation, threshold, calculation type, task ID, reminder, feedback, anti-duplicate behavior | derived-list-time-rule-ledger |
+
+Use specialized ledgers only when the normal ledgers would hide the anchors. They are not mandatory templates. They make high-risk details visible enough for confirmation, migration, and regression checks.
+
+`gold-slice-regression-check` is a final review step for any document covering Gold Set v0.1-like behavior. It checks whether the generated PRD preserves the relevant anchors; it does not compare prose byte-for-byte.
 
 ## 4. Material And Version Governance
 
@@ -414,6 +755,7 @@ The function pack records:
 
 ```text
 stable function ID and tree position
+source-evidence
 source requirements and version changes
 current effective requirement set
 roles and permissions
@@ -425,16 +767,25 @@ exceptions, failure, retry, compensation
 external collaboration
 acceptance
 0-10 impact conclusions
+local-anchor-contract
 candidate chapter blocks
+consumption-map
+local-gate-report
 pending product questions
 confirmation record
 ```
+
+For Gold Set-like or otherwise high-risk units, `source-evidence`,
+`local-anchor-contract`, `chapter-block`, `consumption-map`, and
+`local-gate-report` are not optional working notes; they are the local
+fidelity contract.
 
 Minimum closure rule:
 
 ```text
 one current leaf function or explicitly related small batch
 -> one function pack or recorded direct-migration disposition
+-> evidence-locked local loop completed when the unit is high risk
 -> complete Chapter 6/7/8 coverage or justified not-applicable
 -> quality-reviewed frozen body block
 ```
@@ -521,7 +872,7 @@ confirmed body content
 ```
 
 Block IDs do not change because a heading is renamed or moved.
-The assembled `FULL-PRD.md` must not contain these markers.
+The assembled formal Full PRD file must not contain these markers.
 
 ### 7.2 Legal states
 
@@ -544,6 +895,15 @@ During review, a requirement-unit pack may contain candidate blocks. After produ
 4. Keep only block ID, location, confirmation record, and confirmation hash in the requirement-unit pack.
 
 `chapters/` becomes the only source of frozen prose. Do not maintain a separately editable frozen copy in a function or global pack.
+
+For high-risk units, the block cannot enter `chapters/` until:
+
+```text
+source-evidence complete
+local-anchor-contract complete
+consumption-map complete
+local-gate-report = pass
+```
 
 ## 8. Staged Confirmation Workflow
 
@@ -568,18 +928,28 @@ For one requirement unit or a small related batch:
 load related source and inherited blocks only
 -> calculate current effective requirements
 -> identify blockers and preliminary 0-10 impact
+-> scaffold the requirement-unit pack for high-risk units
+-> lock source-evidence for high-risk units
+-> generate local-anchor-contract from gate profile + evidence
 -> product closes behavior-changing blockers
 -> generate complete cross-chapter candidate blocks
+-> generate consumption-map
+-> run `scripts/validate_requirement_unit_gate.py`
 -> product reviews the complete requirement unit
 -> copy confirmed text unchanged into chapter fragments
 -> verify text/SHA-256
 -> freeze blocks
+-> run `scripts/prd_lifecycle_hook.py complete-task --require-packs`
 -> update control compass, ledgers, coverage, and impact index
 ```
 
 Start with structure and behavior-changing decisions. Ask finer field, interaction, exception, and acceptance questions only for the current unit.
 
 Do not ask product to approve every sentence or ordinary editorial normalization. Do not postpone behavior-changing questions until after detailed writing.
+
+If the local gate reports `missing anchor`, `weak anchor`, or `global-only
+anchor`, fix the local unit before product confirmation unless the issue is
+explicitly converted into a pending item.
 
 ### 8.3 Complete story coverage
 
@@ -751,11 +1121,13 @@ Procedure:
 5. Create a separate target-version working copy and workspace.
 6. Extract additions, modifications, deletions, replacements, and unclear changes from new materials.
 7. Map changes to stable function/global-rule IDs and baseline block locations.
-8. Run complete Chapter 0-10 impact analysis for every changed requirement unit.
-9. Load and modify only affected packs and chapter blocks.
-10. Keep unaffected inherited blocks byte-for-byte unchanged.
-11. Perform full semantic review for all changed functions and global rules.
-12. Perform association regression checks for inherited blocks.
+8. Run `validate-function-coverage`, then `init-leaf-queue`, and return every
+   affected leaf function to `To Generate` before treating the target-version
+   working copy as trustworthy.
+9. Run complete Chapter 0-10 impact analysis for every changed requirement unit.
+10. Load and modify only affected packs and chapter blocks.
+11. Keep unaffected inherited blocks byte-for-byte unchanged.
+12. Perform full semantic review for all changed functions and global rules.
 13. Product confirms the complete change set and target output version.
 14. Freeze changed blocks and assemble a new file.
 15. Chapter 0 records additions, modifications, deletions, and impact from old to new baseline.
@@ -889,7 +1261,7 @@ Rules:
 - Formal body text outside registered blocks is forbidden.
 - If a table of contents is required, generate and register it as a derived block before assembly.
 - The final `--output` path must be inside the PRD workspace but outside `chapters/`; it must not overwrite `ASSEMBLY-MANIFEST.md` or any registered source file.
-- The final `FULL-PRD.md` contains only clean product prose; `PRD-BLOCK` comments remain in `chapters/` for source verification and are stripped from formal output.
+- The final formal Full PRD file contains only clean product prose; `PRD-BLOCK` comments remain in `chapters/` for source verification and are stripped from formal output.
 
 ### 14.2 Formal assembly
 
@@ -899,11 +1271,13 @@ Run:
 python3 <skill-dir>/scripts/assemble_prd.py \
   --workspace <prd-workspace> \
   --manifest <prd-workspace>/ASSEMBLY-MANIFEST.md \
-  --output <prd-workspace>/FULL-PRD.md
+  --output <prd-workspace>/<系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md
 ```
 
 Manual model concatenation is an unverified draft, not a formal baseline.
-If a copy outside the workspace is needed, first assemble and verify `<prd-workspace>/FULL-PRD.md`, then copy that verified file separately.
+If a copy outside the workspace is needed, first assemble and verify the single
+formal Full PRD file in the workspace, then copy that verified file separately
+without treating the copy as a second baseline.
 
 The assembler validates:
 
@@ -925,13 +1299,32 @@ It must not generate, summarize, renumber, or rewrite product prose.
 After assembly, run the assembler again with `--check-existing` to verify the
 persisted final file still matches the registered source blocks.
 
+### 14.3 Final file accessibility
+
+After assembly:
+
+1. Verify the canonical product-named file exists.
+2. Re-open it with UTF-8 and confirm the first and last non-empty lines are
+   readable.
+3. If the environment cannot display, persist, or transfer the Chinese
+   product-named filename reliably, create an ASCII fallback filename copy in
+   the same workspace, for example:
+
+   ```text
+   full-prd-v<version>-baseline-<YYYYMMDD>-generated-<YYYYMMDD>.md
+   ```
+
+4. Record the canonical path and ASCII fallback filename in `PRD-CONTROL.md`.
+5. State clearly that the product-named file remains the canonical baseline and
+   the fallback is only for delivery access.
+
 ## 15. Quality Validation
 
 Run quality validation before marking a formal baseline:
 
 ```bash
 python3 <skill-dir>/scripts/validate_prd_quality.py \
-  --final <prd-workspace>/FULL-PRD.md \
+  --final <prd-workspace>/<系统名称>PRD-<版本号>_完整版_<正式标记>_基线<YYYYMMDD>_生成<YYYYMMDD>.md \
   --manifest <prd-workspace>/ASSEMBLY-MANIFEST.md
 ```
 
@@ -1037,6 +1430,15 @@ verifiable result
 
 Do not use `支持相关操作`, `按需展示`, `进行优化`, `异常时提示`, or `其他规则同上` as substitutes for actual requirements.
 
+For high-risk requirement units, content quality additionally requires:
+
+```text
+locked source-evidence
+profile-derived local-anchor-contract
+consumption-map proving local anchor coverage
+no weak-summary substitutes in place of required local anchors
+```
+
 ### 16.8 Assembly completeness
 
 The deterministic assembler must return success. Any illegal state, outside source, duplicate ID/order, missing marker, hash mismatch, order mismatch, or unregistered body blocks formal delivery.
@@ -1045,6 +1447,10 @@ The deterministic assembler must return success. Any illegal state, outside sour
 
 - The deterministic assembler returns success.
 - The quality validator returns success.
+- `scripts/validate_requirement_unit_gate.py` returns success for every Gold
+  Set-like or otherwise high-risk requirement unit.
+- Every Gold Set-like or otherwise high-risk requirement unit passes its local
+  gate. Full-document checks cannot override a failed local gate.
 - Manifest rows do not use `ALL-FUNCTIONS`, `scaffold.md`, or chapter-sized
   catch-all blocks to represent synthesized Chapter 6/7/8 function behavior.
 - The final file has one coherent Chapter 0-9 structure, not repeated chapter
@@ -1065,9 +1471,19 @@ conversation anecdotes.
 | Product asks "what should I confirm?" | Confirmation contract is too process-heavy | Rewrite confirmation prompts to product conclusions |
 | Product says output is too shallow | Requirement-unit granularity or Chapter 7 depth failed | Add anti-summary gate, tests, or examples |
 | Product corrects scope, role, state, or boundary | Missing blocker or conflict surfaced late | Add earlier confirmation or source-sufficiency check |
-| Product asks about file name or delivery target | Final identity contract is unclear | Tighten canonical/delivery naming rules |
+| Product asks about file name or delivery target | Final identity contract is unclear | Tighten single-file formal naming rules |
 | Agent resumes at wrong point | Recovery state is under-specified | Strengthen PRD-CONTROL precedence and state schema |
 | Validator passes but product rejects readability | Quality validator is missing a presentation rule | Add a validator case from the trace |
+| Product says rules were applied to the wrong resource, platform, role, or flow | Applicability boundary is missing | Add or tighten `applicability-matrix` |
+| Product says permissions are mismatched | Permission types were collapsed | Add or tighten `permission-ledger` |
+| Product says the PRD structure is wrong | Reading structure was chosen by the agent, not confirmed | Add or tighten `structure-decision-record` |
+| Product says accepted detail disappeared after merging | Structural migration compressed accepted content | Add or tighten `migration-preservation-check` |
+| Product says function IDs are too broad or too noisy | Coding policy is unclear | Add or tighten `function-code-policy` |
+
+Maintain a `trace-issue-taxonomy` when a trace reveals multiple failures:
+
+| Issue ID | Trace source | User-visible symptom | Root control failure | Required artifact/rule | Regression check | Status |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ### 17.2 Convert trace issues into regression artifacts
 
@@ -1101,3 +1517,44 @@ at least one known bad trace output now fails or is explicitly accepted
 
 This keeps the Skill learnable for product managers while allowing the internal
 control system to become stricter over time.
+
+## 18. Engineering Lifecycle Hook
+
+`scripts/prd_lifecycle_hook.py` is the default deterministic lifecycle hook for
+single-document and multi-material full PRD generation when local code execution
+is available.
+
+It controls:
+
+```text
+init-workspace
+validate-function-coverage
+init-leaf-queue
+complete-task
+validate-release-ready
+```
+
+Command responsibilities:
+
+| Command | When | Responsibility | Must not do |
+| --- | --- | --- | --- |
+| `init-workspace` | After target identity is known | Create recoverable workspace, control file, source inventory, function ledger and coverage matrix | Interpret source requirements |
+| `validate-function-coverage` | After `function-inventory-ledger` and Function 总览检查表 exist | Ensure every included candidate appears in overview and every pending/excluded candidate has explicit disposition | Decide product scope |
+| `init-leaf-queue` | After coverage gate passes and before leaf loop starts | Create canonical `TO-CHECK-FUNCTIONS.md`, reset covered leaf functions to `To Generate`, and create function-pack skeletons | Generate PRD prose or decide requirement detail |
+| `complete-task --require-packs` | After one leaf function has been read, enriched, mapped into packs, and written by the model | Block placeholder/empty packs, mark the task `To Check`; in authorized confirmation mode, mark it `已生成` and advance to the next `To Generate` | Generate PRD prose |
+| `validate-release-ready --require-packs` | Before formal assembly/release | Block release when any function remains `To Generate` / `To Check`, coverage no longer passes, or required pack files are placeholders/empty | Approve business ambiguity |
+
+Hard stops:
+
+```text
+没有通过 coverage gate，不得进入 leaf loop
+没有通过 init-leaf-queue，不得声称叶子功能循环已建立
+没有通过 complete-task --require-packs，不得把叶子功能置为 To Check / 已生成
+没有清空 To Generate / To Check，不得发布
+工程 Hook 负责阻断
+```
+
+The model remains responsible for reading original source evidence, enriching
+details, writing chapter blocks, and recording pending items. Product remains
+responsible for business decisions. Hook 不生成 PRD 正文, does not infer missing
+requirements, and does not replace product confirmation.
