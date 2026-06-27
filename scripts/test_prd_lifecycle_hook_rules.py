@@ -27,8 +27,11 @@ class PrdLifecycleHookRulesTest(unittest.TestCase):
                 "scripts/prd_lifecycle_hook.py",
                 "init-workspace",
                 "validate-function-coverage",
+                "init-leaf-queue",
                 "complete-task",
                 "validate-release-ready",
+                "--require-packs",
+                "TO-CHECK-FUNCTIONS.md",
                 "Hook 不生成 PRD 正文",
             ]
             if term not in text
@@ -41,6 +44,8 @@ class PrdLifecycleHookRulesTest(unittest.TestCase):
             term
             for term in [
                 "没有通过 coverage gate，不得进入 leaf loop",
+                "没有通过 init-leaf-queue，不得声称叶子功能循环已建立",
+                "没有通过 complete-task --require-packs，不得把叶子功能置为 To Check / 已生成",
                 "没有清空 To Generate / To Check，不得发布",
                 "工程 Hook 负责阻断",
             ]

@@ -222,6 +222,20 @@ python3 scripts/prd_lifecycle_hook.py init-workspace \
 
 The hook creates control files and ledgers only. Hook 不生成 PRD 正文.
 
+After the function inventory coverage gate passes, initialize the canonical
+leaf-function queue through the same lifecycle hook:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py init-leaf-queue \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+```
+
+This creates `TO-CHECK-FUNCTIONS.md` and `function-packs/<F-ID>/` skeletons.
+It is mandatory for full PRD generation and baseline incremental upgrades when
+local execution is available. A one-shot draft, batch merge script, or verbal
+claim that functions are ready does not replace this queue.
+
 ### 3.1 Required artifacts by mode
 
 | Mode | Required | Conditional |
@@ -527,6 +541,10 @@ Rules:
 
 ```bash
 python3 scripts/prd_lifecycle_hook.py validate-function-coverage \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+
+python3 scripts/prd_lifecycle_hook.py init-leaf-queue \
   --workspace prd-workspace \
   --overview "prd-workspace/Function 总览检查表.md"
 ```
@@ -921,6 +939,7 @@ load related source and inherited blocks only
 -> copy confirmed text unchanged into chapter fragments
 -> verify text/SHA-256
 -> freeze blocks
+-> run `scripts/prd_lifecycle_hook.py complete-task --require-packs`
 -> update control compass, ledgers, coverage, and impact index
 ```
 
@@ -1102,11 +1121,13 @@ Procedure:
 5. Create a separate target-version working copy and workspace.
 6. Extract additions, modifications, deletions, replacements, and unclear changes from new materials.
 7. Map changes to stable function/global-rule IDs and baseline block locations.
-8. Run complete Chapter 0-10 impact analysis for every changed requirement unit.
-9. Load and modify only affected packs and chapter blocks.
-10. Keep unaffected inherited blocks byte-for-byte unchanged.
-11. Perform full semantic review for all changed functions and global rules.
-12. Perform association regression checks for inherited blocks.
+8. Run `validate-function-coverage`, then `init-leaf-queue`, and return every
+   affected leaf function to `To Generate` before treating the target-version
+   working copy as trustworthy.
+9. Run complete Chapter 0-10 impact analysis for every changed requirement unit.
+10. Load and modify only affected packs and chapter blocks.
+11. Keep unaffected inherited blocks byte-for-byte unchanged.
+12. Perform full semantic review for all changed functions and global rules.
 13. Product confirms the complete change set and target output version.
 14. Freeze changed blocks and assemble a new file.
 15. Chapter 0 records additions, modifications, deletions, and impact from old to new baseline.
@@ -1508,6 +1529,7 @@ It controls:
 ```text
 init-workspace
 validate-function-coverage
+init-leaf-queue
 complete-task
 validate-release-ready
 ```
@@ -1518,13 +1540,16 @@ Command responsibilities:
 | --- | --- | --- | --- |
 | `init-workspace` | After target identity is known | Create recoverable workspace, control file, source inventory, function ledger and coverage matrix | Interpret source requirements |
 | `validate-function-coverage` | After `function-inventory-ledger` and Function 总览检查表 exist | Ensure every included candidate appears in overview and every pending/excluded candidate has explicit disposition | Decide product scope |
-| `complete-task` | After one leaf function has been read, enriched and written by the model | Mark the task `To Check`; in authorized confirmation mode, mark it `已生成` and advance to the next `To Generate` | Generate PRD prose |
-| `validate-release-ready` | Before formal assembly/release | Block release when any function remains `To Generate` / `To Check` or coverage no longer passes | Approve business ambiguity |
+| `init-leaf-queue` | After coverage gate passes and before leaf loop starts | Create canonical `TO-CHECK-FUNCTIONS.md`, reset covered leaf functions to `To Generate`, and create function-pack skeletons | Generate PRD prose or decide requirement detail |
+| `complete-task --require-packs` | After one leaf function has been read, enriched, mapped into packs, and written by the model | Block placeholder/empty packs, mark the task `To Check`; in authorized confirmation mode, mark it `已生成` and advance to the next `To Generate` | Generate PRD prose |
+| `validate-release-ready --require-packs` | Before formal assembly/release | Block release when any function remains `To Generate` / `To Check`, coverage no longer passes, or required pack files are placeholders/empty | Approve business ambiguity |
 
 Hard stops:
 
 ```text
 没有通过 coverage gate，不得进入 leaf loop
+没有通过 init-leaf-queue，不得声称叶子功能循环已建立
+没有通过 complete-task --require-packs，不得把叶子功能置为 To Check / 已生成
 没有清空 To Generate / To Check，不得发布
 工程 Hook 负责阻断
 ```

@@ -18,12 +18,19 @@ rather than fast one-shot generation.
 
 ## Version Record
 
-Current Skill process version: `v0.3.0-alpha.1`.
+Current Skill process version: `v0.3.0-alpha.2`.
 
 This version introduces an engineering lifecycle hook for the failure pattern
 observed in single-source full PRD generation: function candidates visible only
 in OCR, architecture, role-permission material, or appendix indexes can be
 missed if coverage checking is left to memory or conversation state.
+
+`v0.3.0-alpha.2` tightens the hook-driven leaf loop: after function coverage
+passes, every full PRD generation or baseline incremental upgrade must create
+a canonical `TO-CHECK-FUNCTIONS.md` queue and function-pack skeletons through
+the lifecycle hook before any leaf-function prose is treated as generated.
+The hook now blocks task completion when source evidence, local anchors, or
+consumption maps remain placeholders.
 
 Version preservation rules:
 
@@ -40,7 +47,10 @@ Version preservation rules:
 - 第 7 章完整描述全部当前有效功能，不因篇幅迁往第 10 章。
 - Function 总览检查表和 Chapter 7 功能结构总览必须先通过 `function-inventory-coverage-gate`：从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能；候选功能不得因为待定、正文缺失、只有 OCR/角色权限来源或缺少详细正文而消失，必须进入 To Generate、明确排除或 `PEND-` 待确认。
 - 没有通过 coverage gate，不得进入 leaf loop；没有清空 To Generate / To Check，不得发布；工程 Hook 负责阻断这些状态错误。
-- 可执行环境允许时，必须用 `scripts/prd_lifecycle_hook.py` 执行工作区初始化、功能覆盖门禁、叶子功能状态推进和发布前阻断；不得只在对话中口头声明这些状态。
+- 可执行环境允许时，必须用 `scripts/prd_lifecycle_hook.py` 执行工作区初始化、功能覆盖门禁、`TO-CHECK-FUNCTIONS.md` 叶子队列初始化、function-pack 初始化、叶子功能状态推进和发布前阻断；不得只在对话中口头声明这些状态。
+- Function coverage gate 通过后、进入任何 leaf loop 前，必须运行 `scripts/prd_lifecycle_hook.py init-leaf-queue`，从 Function 总览检查表生成 canonical `TO-CHECK-FUNCTIONS.md`，并将待处理叶子功能初始化为 `To Generate`。一次性脚本合并、批量生成草稿或模型口头说明不得替代该队列。
+- 叶子功能从 `To Generate` 推进到 `To Check` 时，必须运行 `scripts/prd_lifecycle_hook.py complete-task --require-packs`；若对应 `function-packs/<F-ID>/source-evidence.md`、`local-anchor-contract.md` 或 `consumption-map.md` 缺失、为空、仍含 `待填写` 或没有有效表格行，Hook 必须阻断。
+- 发布前必须运行 `scripts/prd_lifecycle_hook.py validate-release-ready --require-packs`；任何 `To Generate`、`To Check`、空证据包、空锚点或空消费映射都不得发布。
 - 第 7 章叶子功能执行要素检查，但不强制统一表格模板；缺少稳定原文风格或多轮拼接时采用正式 PRD 产品说明风格。
 - 第 7 章不把优先级、时间要求作为完整版 PRD 功能必查要素；只有转化为产品可见约束时才写入对应功能规则。
 - 第 8 章按外部系统组织，但仍按协同场景和功能写详细产品需求。
@@ -178,6 +188,7 @@ Control rules:
 -> 建立 source-inventory 并确认主基线、附件和排除材料
 -> 建立 function-inventory-ledger 并执行 function-inventory-coverage-gate
 -> 用 scripts/prd_lifecycle_hook.py validate-function-coverage 阻断漏项
+-> 用 scripts/prd_lifecycle_hook.py init-leaf-queue 生成 TO-CHECK-FUNCTIONS.md 和 function-packs
 -> 建立 structure-decision-record 并确认正文组织维度
 -> 建立当前模式必要的中间产物
 -> 建立 applicability-matrix、permission-ledger、cross-cutting-rule-ledger
@@ -186,13 +197,13 @@ Control rules:
 -> 确认系统能力地图和全局规则
 -> 生成 chapter-block 与 consumption-map
 -> 执行 requirement-unit local gate
--> 用 scripts/prd_lifecycle_hook.py complete-task 推进 To Check / 已生成
+-> 用 scripts/prd_lifecycle_hook.py complete-task --require-packs 推进 To Check / 已生成
 -> 按需求单元分轮确认并冻结正文块
 -> 对结构迁移或已接受内容执行 migration-preservation-check
 -> 再次确认最终文档身份
 -> 确认正式 Full PRD 文件名
 -> 确定性装配和校验
--> 用 scripts/prd_lifecycle_hook.py validate-release-ready 阻断未处理队列
+-> 用 scripts/prd_lifecycle_hook.py validate-release-ready --require-packs 阻断未处理队列
 -> 正文质量校验
 ```
 
@@ -241,6 +252,7 @@ Control rules:
 - 仍必须按需求单元逐个提取来源、生成确认口径、记录“按用户授权默认确认”、写入跨章正文、冻结、更新追踪。
 - 仍必须处理字段、规则、异常、失败、外部协同和验收，不得只生成模块摘要。
 - 不得生成 `scaffold.md`、`ALL-FUNCTIONS` 或单个大块冒充全部功能需求单元。
+- 不得跳过 `TO-CHECK-FUNCTIONS.md` 队列和 `complete-task --require-packs`。授权确认只允许 Hook 自动把已经完成证据包和正文更新的单元从 `To Check` 推进到 `已生成`，不允许把未逐项处理的功能批量标记完成。
 - 如果来源不足或质量校验失败，只能继续补齐或标记为未确认草案，不能标记正式基线。
 
 ### Final Document Presentation Contract
@@ -432,12 +444,13 @@ requirement-unit local gate passed
 ## Runtime Boundaries
 
 - 不建立 Schema、Jinja、Normalizer、数据库式追踪或多代理编排。
-- 确定性脚本只用于初始化、状态推进、校验和装配：`scripts/prd_lifecycle_hook.py` 控制生命周期状态和门禁，`scripts/assemble_prd.py` 校验并拼接正文块，`scripts/validate_prd_quality.py` 校验正式正文质量；这些脚本都不得解释需求或生成产品内容。
+- 确定性脚本只用于初始化、状态推进、校验和装配：`scripts/prd_lifecycle_hook.py` 控制生命周期状态、`TO-CHECK-FUNCTIONS.md` 队列和门禁，`scripts/assemble_prd.py` 校验并拼接正文块，`scripts/validate_prd_quality.py` 校验正式正文质量；这些脚本都不得解释需求或生成产品内容。
 - Hook 不生成 PRD 正文，不补写功能细节，不替代产品确认；模型负责语义整理和正文生成，产品负责业务口径确认，工程 Hook 负责阻断状态错误、漏项和未完成队列。
 - `scripts/prd_lifecycle_hook.py init-workspace` 只创建可恢复目录和基础控制文件。
 - `scripts/prd_lifecycle_hook.py validate-function-coverage` 只校验 `function-inventory-ledger`、Function 总览检查表和覆盖处置是否闭环。
-- `scripts/prd_lifecycle_hook.py complete-task` 只推进 `To Generate -> To Check -> 已生成` 状态和当前指针。
-- `scripts/prd_lifecycle_hook.py validate-release-ready` 只在发布前确认没有未处理状态且覆盖门禁仍通过。
+- `scripts/prd_lifecycle_hook.py init-leaf-queue` 只从已通过覆盖门禁的 Function 总览检查表生成 canonical `TO-CHECK-FUNCTIONS.md` 和 function-pack 骨架，不得生成 PRD 正文。
+- `scripts/prd_lifecycle_hook.py complete-task --require-packs` 只在证据包、锚点合同和消费映射非空且无占位符时推进 `To Generate -> To Check -> 已生成` 状态和当前指针。
+- `scripts/prd_lifecycle_hook.py validate-release-ready --require-packs` 只在发布前确认没有未处理状态、覆盖门禁仍通过且证据包门禁已满足。
 - `scripts/validate_requirement_unit_gate.py` 只负责校验 `source-evidence`、`local-anchor-contract`、`chapter-block`、`consumption-map` 的闭环完整性，不负责发明缺失需求。
 - 一次性部署、环境、中间件、技术重构和研发交付任务不进入完整产品基线。
 - 产品可见、可验证的限制仍应写入第 7 或第 8 章。

@@ -21,6 +21,7 @@ OVERVIEW_CANDIDATES = [
 ]
 OPEN_STATES = {"To Generate", "To Check", "待生成", "待检查", "to generate", "to check"}
 DONE_STATE = "已生成"
+REQUIRED_PACK_FILES = ("source-evidence.md", "local-anchor-contract.md", "consumption-map.md")
 
 
 @dataclass
@@ -95,6 +96,14 @@ def ensure_file(path: Path, content: str) -> None:
         path.write_text(content.strip() + "\n", encoding="utf-8")
 
 
+def first_value(item: dict[str, str], keys: list[str], default: str = "") -> str:
+    for key in keys:
+        value = item.get(key, "").strip()
+        if value:
+            return value
+    return default
+
+
 def cmd_init_workspace(args: argparse.Namespace) -> int:
     workspace = args.workspace.resolve()
     workspace.mkdir(parents=True, exist_ok=True)
@@ -158,6 +167,117 @@ def overview_table(path: Path) -> tuple[list[str], Table]:
     lines = read_lines(path)
     table = find_table(lines, {"功能编号", "状态"})
     return lines, table
+
+
+def cmd_init_leaf_queue(args: argparse.Namespace) -> int:
+    workspace = args.workspace.resolve()
+    overview = (args.overview or default_overview(workspace)).resolve()
+    queue = (args.queue or (workspace / "TO-CHECK-FUNCTIONS.md")).resolve()
+    _lines, table = overview_table(overview)
+    rows = [row_dict(table, row) for row in table.rows]
+    if not rows:
+        print("INIT_LEAF_QUEUE_FAILED: overview has no function rows", file=sys.stderr)
+        return 1
+
+    queue_lines = [
+        "# PRD 叶子功能 To Check 队列\n",
+        "\n",
+        "本文档由 `scripts/prd_lifecycle_hook.py init-leaf-queue` 生成，用于逐叶子功能推进原文对照、细节补充、产品检查和发布门禁。\n",
+        "\n",
+        "## 状态说明\n",
+        "\n",
+        "| 状态 | 含义 | 下一步 |\n",
+        "| --- | --- | --- |\n",
+        "| To Generate | 尚未按源文档逐功能对照和细节丰富 | 进入文档内容对照与细节补充 |\n",
+        "| To Check | 已完成该叶子功能的源文档对照、细节补充和 PRD 正文更新，等待产品检查 | 产品确认后改为“已生成” |\n",
+        "| 已生成 | 产品已检查确认该叶子功能正文 | 进入下一叶子功能 |\n",
+        "\n",
+        "## 当前处理指针\n",
+        "\n",
+        "| 项目 | 内容 |\n",
+        "| --- | --- |\n",
+    ]
+
+    first = rows[0]
+    first_id = first_value(first, ["功能编号"])
+    first_name = first_value(first, ["功能名称"], first_id)
+    first_source = first_value(first, ["源文档位置", "Source-location", "Source Location"], "-")
+    first_section = first_value(first, ["详述位置", "目标章节", "Target section", "Chapter 7"], "-")
+    queue_lines.extend(
+        [
+            f"| 当前叶子功能 | {first_id} {first_name} |\n",
+            f"| 源文档位置 | {first_source} |\n",
+            f"| 目标文档位置 | {first_section} |\n",
+            "| 当前状态 | To Generate |\n",
+            "| 本轮处理内容 | 等待按源文档重新进行逐功能对照、证据锁定、细节补充和正文更新。 |\n",
+            "\n",
+            "## 功能结构总览检查表\n",
+            "\n",
+            "| 功能编号 | 层级 | 功能名称 | 类型 | 上级节点 | 定位/说明 | 详述位置 | 状态 | 产品检查结论 | 源文档位置 |\n",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n",
+        ]
+    )
+
+    for item in rows:
+        function_id = first_value(item, ["功能编号"])
+        name = first_value(item, ["功能名称"], function_id)
+        level = first_value(item, ["层级"], "叶子功能")
+        kind = first_value(item, ["类型"])
+        parent = first_value(item, ["上级节点"])
+        description = first_value(item, ["定位/说明", "说明", "描述"])
+        section = first_value(item, ["详述位置", "目标章节", "Target section", "Chapter 7"])
+        source = first_value(item, ["源文档位置", "Source-location", "Source Location"])
+        status = first_value(item, ["状态"], "To Generate") if args.preserve_state else "To Generate"
+        result = first_value(item, ["产品检查结论", "产品检查结果"], "待生成") if args.preserve_state else "待生成"
+        queue_lines.append(
+            f"| {function_id} | {level} | {name} | {kind} | {parent} | {description} | {section} | {status} | {result} | {source} |\n"
+        )
+
+        pack = workspace / "function-packs" / function_id
+        ensure_file(
+            pack / "source-evidence.md",
+            f"""
+            # {function_id} {name} Source Evidence
+
+            源文档位置：{source or '待填写'}
+
+            | evidence_id | source_id | location | evidence_type | content |
+            | --- | --- | --- | --- | --- |
+            | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 |
+            """,
+        )
+        ensure_file(
+            pack / "local-anchor-contract.md",
+            f"""
+            # {function_id} {name} Local Anchor Contract
+
+            | anchor_id | anchor | required_terms | weak_terms |
+            | --- | --- | --- | --- |
+            """,
+        )
+        ensure_file(
+            pack / "consumption-map.md",
+            f"""
+            # {function_id} {name} Consumption Map
+
+            | anchor_id | chapter_section | evidence_refs | ledger_refs |
+            | --- | --- | --- | --- |
+            """,
+        )
+
+    queue_lines.extend(
+        [
+            "\n",
+            "## 产品检查记录\n",
+            "\n",
+            "| 功能编号 | 检查人 | 检查时间 | 结论 | 修改意见 |\n",
+            "| --- | --- | --- | --- | --- |\n",
+        ]
+    )
+    queue.parent.mkdir(parents=True, exist_ok=True)
+    write_lines(queue, queue_lines)
+    print(f"LEAF_QUEUE_INITIALIZED: {queue}")
+    return 0
 
 
 def overview_ids(path: Path) -> set[str]:
@@ -237,19 +357,25 @@ def update_pointer(lines: list[str], title: str, status: str, note: str) -> None
 
 
 def upsert_review(lines: list[str], function_id: str, result: str, note: str) -> None:
-    record = f"| {function_id} | Hook | {result} | {note} |\n"
+    today = _dt.date.today().isoformat()
     try:
-        table = find_table(lines, {"功能编号", "检查人", "检查结果", "备注"})
+        table = find_table(lines, {"功能编号", "检查人"})
     except ValueError:
+        record = f"| {function_id} | Hook | {today} | {result} | {note} |\n"
         lines.extend(
             [
                 "\n## 产品检查记录\n\n",
-                "| 功能编号 | 检查人 | 检查结果 | 备注 |\n",
-                "| --- | --- | --- | --- |\n",
+                "| 功能编号 | 检查人 | 检查时间 | 结论 | 修改意见 |\n",
+                "| --- | --- | --- | --- | --- |\n",
                 record,
             ]
         )
         return
+    if "检查时间" in table.header:
+        record_cells = [function_id, "Hook", today, result, note]
+    else:
+        record_cells = [function_id, "Hook", result, note]
+    record = render_row(record_cells)
 
     id_col = table.header.index("功能编号")
     for idx, row in zip(table.row_indexes, table.rows):
@@ -267,6 +393,40 @@ def upsert_review(lines: list[str], function_id: str, result: str, note: str) ->
     lines.insert(insert_at, record)
 
 
+def has_data_rows(text: str, header_token: str) -> bool:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        if header_token in stripped:
+            continue
+        if re.fullmatch(r"\|\s*:?-{3,}:?.*", stripped):
+            continue
+        return True
+    return False
+
+
+def pack_findings(workspace: Path, function_id: str) -> list[str]:
+    pack = workspace / "function-packs" / function_id
+    findings: list[str] = []
+    for filename in REQUIRED_PACK_FILES:
+        path = pack / filename
+        if not path.exists():
+            findings.append(f"{function_id}: missing {path.relative_to(workspace)}")
+            continue
+        text = path.read_text(encoding="utf-8").strip()
+        if not text:
+            findings.append(f"{function_id}: empty {path.relative_to(workspace)}")
+            continue
+        if "待填写" in text:
+            findings.append(f"{function_id}: placeholder remains in {path.relative_to(workspace)}")
+        if filename == "local-anchor-contract.md" and not has_data_rows(text, "anchor_id"):
+            findings.append(f"{function_id}: no data rows in {path.relative_to(workspace)}")
+        if filename == "consumption-map.md" and not has_data_rows(text, "anchor_id"):
+            findings.append(f"{function_id}: no data rows in {path.relative_to(workspace)}")
+    return findings
+
+
 def cmd_complete_task(args: argparse.Namespace) -> int:
     workspace = args.workspace.resolve()
     overview = (args.overview or default_overview(workspace)).resolve()
@@ -274,7 +434,11 @@ def cmd_complete_task(args: argparse.Namespace) -> int:
     id_col = table.header.index("功能编号")
     status_col = table.header.index("状态")
     name_col = table.header.index("功能名称") if "功能名称" in table.header else None
-    result_col = table.header.index("产品检查结果") if "产品检查结果" in table.header else None
+    result_col = None
+    for candidate in ["产品检查结果", "产品检查结论"]:
+        if candidate in table.header:
+            result_col = table.header.index(candidate)
+            break
 
     target_position: int | None = None
     next_title = ""
@@ -284,6 +448,12 @@ def cmd_complete_task(args: argparse.Namespace) -> int:
             if row[status_col] == DONE_STATE and not args.force:
                 print(f"{args.function_id} already {DONE_STATE}", file=sys.stderr)
                 return 2
+            if args.require_packs:
+                findings = pack_findings(workspace, args.function_id)
+                if findings:
+                    for finding in findings:
+                        print(f"COMPLETE_BLOCKED: {finding}", file=sys.stderr)
+                    return 1
             row[status_col] = "To Check"
             if result_col is not None:
                 row[result_col] = "待检查"
@@ -327,7 +497,7 @@ def cmd_complete_task(args: argparse.Namespace) -> int:
     return 0
 
 
-def release_findings(workspace: Path, overview: Path) -> list[str]:
+def release_findings(workspace: Path, overview: Path, require_packs: bool = False) -> list[str]:
     _lines, table = overview_table(overview)
     findings: list[str] = []
     status_col = table.header.index("状态")
@@ -335,6 +505,8 @@ def release_findings(workspace: Path, overview: Path) -> list[str]:
     for row in table.rows:
         if row[status_col] in OPEN_STATES:
             findings.append(f"{row[id_col]} remains {row[status_col]}")
+        if require_packs:
+            findings.extend(pack_findings(workspace, row[id_col]))
     ledger = workspace / "source-ledger" / "function-inventory-ledger.md"
     if ledger.exists():
         findings.extend(coverage_findings(workspace, overview))
@@ -344,7 +516,7 @@ def release_findings(workspace: Path, overview: Path) -> list[str]:
 def cmd_validate_release_ready(args: argparse.Namespace) -> int:
     workspace = args.workspace.resolve()
     overview = (args.overview or default_overview(workspace)).resolve()
-    findings = release_findings(workspace, overview)
+    findings = release_findings(workspace, overview, args.require_packs)
     if findings:
         for finding in findings:
             print(f"RELEASE_NOT_READY: {finding}", file=sys.stderr)
@@ -364,6 +536,13 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--target-version", required=True)
     init.set_defaults(func=cmd_init_workspace)
 
+    init_queue = sub.add_parser("init-leaf-queue")
+    init_queue.add_argument("--workspace", type=Path, required=True)
+    init_queue.add_argument("--overview", type=Path)
+    init_queue.add_argument("--queue", type=Path)
+    init_queue.add_argument("--preserve-state", action="store_true")
+    init_queue.set_defaults(func=cmd_init_leaf_queue)
+
     coverage = sub.add_parser("validate-function-coverage")
     coverage.add_argument("--workspace", type=Path, required=True)
     coverage.add_argument("--overview", type=Path)
@@ -377,11 +556,13 @@ def build_parser() -> argparse.ArgumentParser:
     complete.add_argument("--auto-approve", action="store_true")
     complete.add_argument("--stop-at")
     complete.add_argument("--force", action="store_true")
+    complete.add_argument("--require-packs", action="store_true")
     complete.set_defaults(func=cmd_complete_task)
 
     release = sub.add_parser("validate-release-ready")
     release.add_argument("--workspace", type=Path, required=True)
     release.add_argument("--overview", type=Path)
+    release.add_argument("--require-packs", action="store_true")
     release.set_defaults(func=cmd_validate_release_ready)
 
     return parser

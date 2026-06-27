@@ -134,6 +134,140 @@ class PrdLifecycleHookTest(unittest.TestCase):
             self.assertIn("| 当前叶子功能 | F-B 日志管理 |", text)
             self.assertIn("| 当前状态 | To Generate |", text)
 
+    def test_init_leaf_queue_creates_to_check_queue_and_packs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            overview = workspace / "Function 总览检查表.md"
+            write(
+                overview,
+                """
+                | 功能编号 | 功能名称 | 状态 | 产品检查结果 | 源文档位置 | 详述位置 |
+                | --- | --- | --- | --- | --- | --- |
+                | F-A | 账户列表 | To Check | 待检查 | 1.1 账户列表 | 7.1 |
+                | F-B | 日志管理 | To Check | 待检查 | OCR-2 日志管理 | 7.2 |
+                """,
+            )
+
+            result = self.run_hook(
+                "init-leaf-queue",
+                "--workspace",
+                str(workspace),
+                "--overview",
+                str(overview),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            queue = workspace / "TO-CHECK-FUNCTIONS.md"
+            self.assertTrue(queue.exists())
+            text = queue.read_text(encoding="utf-8")
+            self.assertIn("| 当前叶子功能 | F-A 账户列表 |", text)
+            self.assertIn("| F-A | 叶子功能 | 账户列表 |", text)
+            self.assertIn("| F-A | 叶子功能 | 账户列表 |  |  |  | 7.1 | To Generate | 待生成 | 1.1 账户列表 |", text)
+            for relative in [
+                "function-packs/F-A/source-evidence.md",
+                "function-packs/F-A/local-anchor-contract.md",
+                "function-packs/F-A/consumption-map.md",
+            ]:
+                self.assertTrue((workspace / relative).exists(), relative)
+
+    def test_complete_task_with_pack_gate_blocks_placeholder_packs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            overview = workspace / "Function 总览检查表.md"
+            write(
+                overview,
+                """
+                | 功能编号 | 功能名称 | 状态 | 源文档位置 | 详述位置 |
+                | --- | --- | --- | --- | --- |
+                | F-A | 账户列表 | To Generate | 1.1 账户列表 | 7.1 |
+                """,
+            )
+            init_result = self.run_hook(
+                "init-leaf-queue",
+                "--workspace",
+                str(workspace),
+                "--overview",
+                str(overview),
+            )
+            self.assertEqual(init_result.returncode, 0, init_result.stderr)
+
+            result = self.run_hook(
+                "complete-task",
+                "--workspace",
+                str(workspace),
+                "--overview",
+                str(workspace / "TO-CHECK-FUNCTIONS.md"),
+                "--function-id",
+                "F-A",
+                "--require-packs",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("placeholder remains", result.stderr)
+            self.assertIn("no data rows", result.stderr)
+
+    def test_complete_task_with_pack_gate_passes_after_pack_is_filled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            overview = workspace / "Function 总览检查表.md"
+            write(
+                overview,
+                """
+                | 功能编号 | 功能名称 | 状态 | 源文档位置 | 详述位置 |
+                | --- | --- | --- | --- | --- |
+                | F-A | 账户列表 | To Generate | 1.1 账户列表 | 7.1 |
+                """,
+            )
+            init_result = self.run_hook(
+                "init-leaf-queue",
+                "--workspace",
+                str(workspace),
+                "--overview",
+                str(overview),
+            )
+            self.assertEqual(init_result.returncode, 0, init_result.stderr)
+            pack = workspace / "function-packs" / "F-A"
+            write(
+                pack / "source-evidence.md",
+                """
+                | evidence_id | source_id | location | evidence_type | content |
+                | --- | --- | --- | --- | --- |
+                | E-001 | SRC-001 | 1.1 | text | 账户列表原文 |
+                """,
+            )
+            write(
+                pack / "local-anchor-contract.md",
+                """
+                | anchor_id | anchor | required_terms | weak_terms |
+                | --- | --- | --- | --- |
+                | A-001 | 列表入口 | 账户列表 | 支持相关操作 |
+                """,
+            )
+            write(
+                pack / "consumption-map.md",
+                """
+                | anchor_id | chapter_section | evidence_refs | ledger_refs |
+                | --- | --- | --- | --- |
+                | A-001 | 7.1 | E-001 | function-inventory-ledger:C-001 |
+                """,
+            )
+
+            result = self.run_hook(
+                "complete-task",
+                "--workspace",
+                str(workspace),
+                "--overview",
+                str(workspace / "TO-CHECK-FUNCTIONS.md"),
+                "--function-id",
+                "F-A",
+                "--require-packs",
+                "--auto-approve",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            text = (workspace / "TO-CHECK-FUNCTIONS.md").read_text(encoding="utf-8")
+            self.assertIn("| F-A | 叶子功能 | 账户列表 |  |  |  | 7.1 | 已生成 | 默认检查通过 | 1.1 账户列表 |", text)
+
     def test_release_ready_blocks_unprocessed_and_uncovered_functions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
