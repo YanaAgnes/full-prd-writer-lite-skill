@@ -21,6 +21,7 @@ rather than fast one-shot generation.
 - 格式转换不得删除、概括或压缩有效需求。
 - 第 6 章覆盖全部范围内用户故事与使用路径，不按核心、重点或辅助抽样。
 - 第 7 章完整描述全部当前有效功能，不因篇幅迁往第 10 章。
+- Function 总览检查表和 Chapter 7 功能结构总览必须先通过 `function-inventory-coverage-gate`：从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能；候选功能不得因为待定、正文缺失、只有 OCR/角色权限来源或缺少详细正文而消失，必须进入 To Generate、明确排除或 `PEND-` 待确认。
 - 第 7 章叶子功能执行要素检查，但不强制统一表格模板；缺少稳定原文风格或多轮拼接时采用正式 PRD 产品说明风格。
 - 第 7 章不把优先级、时间要求作为完整版 PRD 功能必查要素；只有转化为产品可见约束时才写入对应功能规则。
 - 第 8 章按外部系统组织，但仍按协同场景和功能写详细产品需求。
@@ -38,6 +39,63 @@ rather than fast one-shot generation.
 - 第 0-9 章不能只有标题或空壳；每章必须有可评审的正式正文。
 - 产品确认授权只减少等待，不减少需求单元处理深度；不得把授权确认降级成批量迁移或一次性脚手架生成。
 - 正式基线必须同时通过装配校验和正文质量校验；装配通过只证明文本一致，不证明 PRD 质量合格。
+- 高风险需求单元必须先锁定 `source-evidence`，再生成规则和正文；没有 `source-evidence`，不得写入高风险功能正文。
+- 高风险需求单元必须先生成 `local-anchor-contract`，再生成 `chapter-block`；没有 `local-anchor-contract`，不得写正文块。
+- 高风险需求单元正文块必须提供 `consumption-map`，证明关键证据和 ledger 已被本地正文消费；没有 `consumption-map`，不得冻结。
+- 高风险需求单元必须通过 requirement-unit local gate，才可进入 `chapters/` 冻结源；不得只靠整篇 PRD 的全文级关键词检查放行。
+- 最终装配只能拼接 `chapters/` 中已冻结或基线继承的正文块；不得在装配阶段重新概括、合并或润色第 7 章正文。
+- 对命中 Gold Set v0.1 或同类高风险模式的需求单元，默认先用 `scripts/init_requirement_unit_pack.py` 建立 pack 骨架，再填写 `source-evidence`、`local-anchor-contract`、`chapter-block`、`consumption-map`；不得跳过骨架直接写第 7 章正文。
+
+### Trace-Driven Fidelity Invariants
+
+- 多材料任务必须先建立 `source-inventory`，确认主基线、迭代材料、附件、Excel、消息模板、移动端材料、外部系统说明和排除范围；不得因为文件名最新就默认其为主基线。
+- 建立功能清单时必须维护 `function-inventory-ledger`，逐条记录候选功能的 `source-location`、source type、evidence、coverage disposition、目标章节和处置理由；不得只从详细正文标题生成叶子功能清单。
+- 后续版本修改必须进入 `applicability-matrix`，逐条标注适用的资源类型 / 对象类型、平台端、角色、流程节点、页面、操作和外部系统；不得把局部资源或局部页面规则扩散为全系统规则。
+- 权限必须进入 `permission-ledger`，区分菜单权限、页面/列表按钮权限、流程节点按钮权限、数据权限、外部平台控制权限；不得把工作流引擎控制按钮写成普通页面按钮。
+- 第 6、7、8 章展开前必须记录 `structure-decision-record`，说明正文按生命周期、页面、业务对象、角色、资源类型或流程组织的理由；不得在未确认结构维度时把资源类型拆成独立模块。
+- 跨页面、跨流程、跨外部系统的规则必须进入 `cross-cutting-rule-ledger`，并回填到实际页面、功能、详情页、消息或协同场景；不得把横切规则写成孤立的迭代说明。
+- 对已接受详细内容做结构迁移时必须执行 `migration-preservation-check`；结构迁移不得重新摘要，不得把已接受详细内容压缩成概述。
+- 正式正文必须遵守 `function-code-policy`：只有真实功能、页面、详情页、列表、关键业务动作或全局产品规则获得 `F-`；父级分类和普通子规则不滥用 `F-`。
+- 每次基于用户 Trace 修订 Skill 时必须维护 `trace-issue-taxonomy`，把用户可见失败映射到控制修复和回归检查。
+- 对命中 Gold Set v0.1 或同类高风险模式的需求单元，必须建立 `source-evidence`、`local-anchor-contract`、`consumption-map`、`local-gate-report`；不得用单个摘要段落替代这些中间产物。
+- `source-extract` 可以是工作提炼物，但对高风险需求单元不得替代 `source-evidence`；正文保真以 `source-evidence` 为准。
+- `local-anchor-contract` 必须来自固定 profile 锚点与本单元证据的交集，不得完全依赖模型自由归纳。
+- requirement-unit local gate 必须区分 `missing anchor`、`weak anchor`、`global-only anchor`；`支持相关操作`、`查询条件保持一致`、`按权限控制` 一类弱表达不得充当高风险需求单元正文。
+
+### Gold Slice Regression Gates
+
+Gold Set v0.1 is a regression lens, not source material. 不要求逐字复制 Gold Slice，但必须覆盖每个 slice 的保真锚点。
+
+- `form-detail gate`: create/edit/detail functions must preserve 入口、按钮、嵌套表单、字段、展示规则、填写规则, validation, state/data changes, and acceptance.
+- `workflow-permission-message gate`: stateful workflow units must preserve flow-node buttons, permission layers, detail operations, status changes, message triggers, external jumps, and logs.
+- `object-lifecycle gate`: business-object lifecycle units must preserve object states, resource/object types, association/withdrawal rules, external consistency, and detail sections.
+- `derived-list-time-rule gate`: derived operational lists must preserve list-generation rules, time thresholds, calculation type, task IDs, feedback records, reminders, and anti-duplicate behavior.
+
+When a requirement unit matches one of these gates, add the matching specialized ledger if the standard ledgers cannot keep the anchors visible: `form-detail-ledger`, `message-notification-ledger`, `object-lifecycle-ledger`, or `derived-list-time-rule-ledger`.
+
+### Evidence-Locked Unit Loop
+
+For any requirement unit that matches a Gold Slice gate or otherwise carries high compression risk, use this closed loop:
+
+```text
+source-evidence
+-> applicability / permission / cross-cutting ledgers
+-> local-anchor-contract
+-> chapter-block
+-> consumption-map
+-> requirement-unit local gate
+-> confirmation
+-> freeze into chapters/
+```
+
+Control rules:
+
+- `source-evidence` stores verbatim or table-preserving evidence with stable source IDs and locations. It is not a prose summary.
+- `local-anchor-contract` lists the local anchors the final Chapter 7 or 8 prose must cover. Missing-source anchors become pending items; they do not disappear silently.
+- `local-anchor-contract` for tooling uses a machine-readable table with `anchor_id | anchor | required_terms | weak_terms`; use `/` for required sub-anchors and ` or ` for acceptable aliases inside one sub-anchor.
+- `consumption-map` records which evidence and ledger rows are consumed by which local prose section.
+- `consumption-map` for tooling uses a machine-readable table with `anchor_id | chapter_section | evidence_refs | ledger_refs`.
+- The requirement-unit local gate is authoritative for local fidelity. The full-document `gold-slice-regression-check` remains useful, but it cannot override a failed local gate.
 
 ## Capability Gate
 
@@ -98,9 +156,18 @@ rather than fast one-shot generation.
 ```text
 轻量扫描
 -> 确认系统、范围、排除范围、模式、初步目标版本
+-> 建立 source-inventory 并确认主基线、附件和排除材料
+-> 建立 function-inventory-ledger 并执行 function-inventory-coverage-gate
+-> 建立 structure-decision-record 并确认正文组织维度
 -> 建立当前模式必要的中间产物
+-> 建立 applicability-matrix、permission-ledger、cross-cutting-rule-ledger
+-> 为高风险需求单元锁定 source-evidence
+-> 为高风险需求单元建立 local-anchor-contract
 -> 确认系统能力地图和全局规则
+-> 生成 chapter-block 与 consumption-map
+-> 执行 requirement-unit local gate
 -> 按需求单元分轮确认并冻结正文块
+-> 对结构迁移或已接受内容执行 migration-preservation-check
 -> 再次确认最终文档身份
 -> 确认正式 Full PRD 文件名
 -> 确定性装配和校验
@@ -167,6 +234,7 @@ rather than fast one-shot generation.
 - 后续版本合入该正式 Full PRD 对应的 `chapters/` 与清单体系，不从另一个副本合入。
 - 文件状态优先使用 `待产品确认版`、`产品确认版`、`正式基线候选`；只有产品明确确认且无阻断项时才使用 `正式版`。
 - 最终装配前必须确认系统名称、版本号、状态、基线日期、生成日期和正式 Full PRD 文件名。
+- 如果中文正式文件名在当前运行环境中无法稳定落盘、展示或下载，必须生成一个可追踪的 ASCII fallback filename 副本，并执行文件可读取性校验；该副本只是交付可达性保障，不替代 canonical baseline 身份。
 
 正式正文的阅读结构：
 
@@ -196,15 +264,19 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 3. 判断材料是否足以恢复目标范围；不足时先补材料或缩小目标，不承诺正式完整版。
 4. 向用户确认系统名称、范围、排除范围、模式和初步目标版本。
 5. 加载 `references/prd-discovery-workflow.md`，按模式建立必要工作区。
-6. 恢复并确认当前系统能力地图、全局规则、角色、流程、状态和外部边界。
-7. 按需求单元提取当前有效需求，处理冲突和待确认问题。
-8. 生成该需求单元对第 0-10 章的候选正文块，由产品分批确认。
-9. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
-10. 完成全部计划内需求单元后，执行完整性和内容质量闸门。
-11. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和正式 Full PRD 文件名。
-12. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配干净正式文件。
-13. 使用 `scripts/assemble_prd.py --check-existing` 和 `scripts/validate_prd_quality.py` 检查正式文件一致性与正文质量。
-14. 装配、质量、覆盖和跨章节检查全部通过后，才可标记为正式基线。
+6. 建立 `source-inventory`、`structure-decision-record` 和必要的 trace-control ledgers。
+7. 建立 `function-inventory-ledger`，从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能，并执行 `function-inventory-coverage-gate`。
+8. 恢复并确认当前系统能力地图、全局规则、角色、流程、状态和外部边界。
+9. 按需求单元提取当前有效需求，处理冲突、适用范围、权限、横切规则和待确认问题。
+10. 对高风险需求单元先执行 `scripts/init_requirement_unit_pack.py` 或手工建立等价骨架，再锁定 `source-evidence`，并从固定 profile 生成 `local-anchor-contract`。
+11. 基于证据和 ledgers 生成该需求单元对第 0-10 章的候选 `chapter-block` 与 `consumption-map`。
+12. 执行 requirement-unit local gate，识别 `missing anchor`、`weak anchor`、`global-only anchor`，未通过则补齐后再进入确认。
+13. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
+14. 完成全部计划内需求单元后，执行完整性、结构迁移保真、local gate 汇总和内容质量闸门。
+15. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和正式 Full PRD 文件名。
+16. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配干净正式文件。
+17. 使用 `scripts/assemble_prd.py --check-existing` 和 `scripts/validate_prd_quality.py` 检查正式文件一致性与正文质量。
+18. 装配、质量、覆盖、可读取性、local gate 和跨章节检查全部通过后，才可标记为正式基线。
 
 ## Requirement Units And Content Blocks
 
@@ -217,6 +289,24 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 
 全局规则包括角色权限、导航、公共交互、上传下载、搜索、错误反馈、数据权限、审计及其他影响多个功能的产品规则。
 
+对命中 Gold Set v0.1 或同类高风险模式的功能需求单元，需求单元包至少还必须包含：
+
+```text
+source-evidence
+local-anchor-contract
+chapter-block
+consumption-map
+local-gate-report
+```
+
+高风险需求单元正文最少要证明：
+
+```text
+source-evidence -> ledger row -> local-anchor-contract -> chapter-block -> consumption-map
+```
+
+任意链路缺口都不能冻结正文。
+
 正文块是确认和冻结单位。合法状态：
 
 ```text
@@ -227,6 +317,15 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 ```
 
 新生成或发生语义变化的正文块不得跳过确认直接冻结。`chapters/` 中的正文块是冻结正文唯一真源；需求单元包只保存来源、映射、影响、确认记录和哈希。
+
+对高风险需求单元，`chapter-block` 进入 `chapters/` 前必须满足：
+
+```text
+source-evidence complete
+local-anchor-contract complete
+consumption-map complete
+requirement-unit local gate passed
+```
 
 每个需求单元必须对第 0-10 章记录：
 
@@ -243,6 +342,13 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 - 目标系统、范围、排除范围和目标版本已经确认。
 - 所有计划内材料均已处理或明确排除。
 - 材料足以证明目标范围的当前系统基线；局部迭代材料未被冒充为系统全量。
+- `source-inventory` 已确认主基线、迭代材料、附件、外部来源、未纳入材料和无法读取材料。
+- `function-inventory-coverage-gate` 已证明 Function 总览检查表、Chapter 7 功能结构总览和 `function-inventory-ledger` 一致；所有来自目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字或附件索引的候选功能均有 `source-location` 和 coverage disposition。
+- `applicability-matrix` 已证明每条迭代规则的资源类型 / 对象类型、平台端、角色、流程节点、页面、操作和外部系统适用范围。
+- `permission-ledger` 已区分菜单权限、页面/列表按钮权限、流程节点按钮权限、数据权限和外部平台控制权限。
+- `structure-decision-record` 已确认正文组织维度，且第 6、7、8 章没有因错误组织维度丢失业务生命周期细节。
+- `cross-cutting-rule-ledger` 已将横切规则回填到受影响页面、功能、详情页、消息和外部协同。
+- 涉及已接受详细内容或章节迁移时，`migration-preservation-check` 证明结构迁移不得重新摘要且没有压缩已接受详细内容。
 - 有效需求均进入正文、明确排除或经产品确认删除。
 - 当前系统能力地图、全局规则和角色权限已经确认。
 - 第 6 章覆盖全部适用用户故事和使用路径。
@@ -256,6 +362,11 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 - `scripts/assemble_prd.py` 返回通过结果。
 - `scripts/assemble_prd.py --check-existing` 返回通过结果。
 - `scripts/validate_prd_quality.py` 返回通过结果。
+- 对命中 Gold Set v0.1 或同类高风险模式的需求单元，`scripts/validate_requirement_unit_gate.py` 返回通过结果。
+- 对 Gold Set v0.1 覆盖的功能域执行 `gold-slice-regression-check`；不要求逐字复制 Gold Slice，但必须覆盖每个 slice 的保真锚点。
+- 对命中 Gold Set v0.1 或同类高风险模式的每个需求单元执行 requirement-unit local gate；不得只跑整篇 PRD 的全文级检查。
+- 每个高风险需求单元都存在 `source-evidence`、`local-anchor-contract`、`consumption-map` 和 `local-gate-report`，且 local gate 结果为通过。
+- 高风险需求单元正文不存在 `支持相关操作`、`查询条件保持一致`、`按权限控制`、`系统按规则处理`、`查看详情` 一类弱表达替代关键规则。
 - 正式 Full PRD 文件位于 PRD 工作区根部，不污染 `chapters/` 冻结源目录。
 - 正式 Full PRD 文件不包含 `PRD-BLOCK` 或其他内部装配标记。
 - 正式文档使用清晰的产品命名文件名，并且只存在一个正式 Full PRD 输出。
@@ -288,6 +399,7 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 
 - 每个完整 PRD 任务都加载 `references/prd-discovery-workflow.md`。
 - 起草或修改章节正文前加载 `references/full-prd-chapter-rules.md`。
+- 对 Gold Set-like 或高风险需求单元，起草 pack 前加载 `references/requirement-unit-pack-templates.md`。
 - 最终装配或生成明确要求的未确认草案时加载 `references/full-prd-template.md`。
 - 多材料任务只加载当前材料分片、相关需求单元和必要全局规则，不反复载入全部材料。
 
@@ -295,6 +407,7 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 
 - 不建立 Schema、Jinja、Normalizer、数据库式追踪或多代理编排。
 - 确定性脚本只用于校验和装配：`scripts/assemble_prd.py` 校验并拼接正文块，`scripts/validate_prd_quality.py` 校验正式正文质量；二者都不得解释需求或生成产品内容。
+- `scripts/validate_requirement_unit_gate.py` 只负责校验 `source-evidence`、`local-anchor-contract`、`chapter-block`、`consumption-map` 的闭环完整性，不负责发明缺失需求。
 - 一次性部署、环境、中间件、技术重构和研发交付任务不进入完整产品基线。
 - 产品可见、可验证的限制仍应写入第 7 或第 8 章。
 - 第 9 章问题必须来自输入缺失、材料冲突或产品提需未写清，不得为了填满章节而制造问题。

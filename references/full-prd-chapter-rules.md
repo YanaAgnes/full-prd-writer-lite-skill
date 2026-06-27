@@ -120,6 +120,26 @@ The final document should provide enough overview tables for a reviewer to trace
 from a module to its stories, detailed functions, external collaborations, and
 remaining pending items without opening internal work files.
 
+### 2.3 Function code policy
+
+Formal PRDs must follow the `function-code-policy`:
+
+- Give `F-` IDs to real functions, list pages, detail pages, create/edit pages,
+  key business actions, or global product rules that need cross-chapter
+  traceability.
+- Do not give `F-` IDs to parent categories, ordinary field rows, validation
+  rows, prompt text, status labels, or acceptance points.
+- A parent category can own several `F-` children, but it is not itself a
+  function unless the product exposes it as an independently operable
+  capability.
+- Child rules inherit the owning `F-`; use local rule numbers inside the
+  function when a rule needs to be referenced.
+- All `US- / F- / EXT- / PEND-` codes used in Chapters 6-9 must match exactly.
+- `F-` candidates must be reconciled with `function-inventory-ledger`; a
+  function seen only in 目录 / TOC, 功能架构, OCR, 功能汇总, 角色权限, 菜单权限,
+  screenshots, or appendix indexes cannot be dropped merely because the source
+  lacks a detailed body section.
+
 ## 3. Chapter 0-5 Rules
 
 ### 3.1 Chapter 0: 修订记录
@@ -230,6 +250,13 @@ Rules:
 - Keep this chapter as a global permission summary.
 - Do not include external-system roles in this system's role table.
 - When a global role/permission changes, identify every constrained function and update related Chapters 6-8 behavior.
+- Use the `permission-ledger` dimensions when the source distinguishes them:
+  菜单权限、页面/列表按钮权限、流程节点按钮权限、数据权限、外部平台控制权限.
+- Do not mix workflow/APaaS/BPM node buttons into page/list button permission.
+  Workflow-node availability belongs with the flow/state behavior and the
+  affected Chapter 7 operation.
+- Do not infer data permission from menu permission. Data permission requires
+  a source statement or product confirmation.
 
 ### 3.6 Chapter 5: 业务流程
 
@@ -332,6 +359,15 @@ Use the operation-manual principle of covering every function, but do not write 
 
 Chapter 7 is the main product-requirement body. Completeness has priority over page count.
 
+Before drafting or updating Chapter 7, pass `function-inventory-coverage-gate`.
+The Function 总览检查表, Chapter 7 功能结构总览, `function-inventory-ledger`, and
+`function-code-policy` must agree on every candidate function's source-location
+and coverage disposition. Candidates marked 待定, 正文缺失, OCR-only, role-only,
+or menu-only are still visible product signals: they must enter the overview as
+To Generate, merge into an existing `F-` with reason, become 明确排除, or become a
+`PEND-` item. They must not disappear because they lack detail; specifically,
+不得因为缺少详细正文而 omit a candidate from the function inventory.
+
 ### 5.1 Required structure
 
 ```text
@@ -362,6 +398,12 @@ headings. The reader should first see product domains and business objects, then
 leaf function IDs.
 
 Prefer one consistent second-level dimension inside a functional domain. Do not mix menu, role, page type, and iteration version arbitrarily.
+
+Before drafting Chapter 7, use the confirmed `structure-decision-record`.
+If the product lifecycle is shared across resource types, write lifecycle
+modules first and place resource-type differences inside the affected
+functions. Do not promote a resource type / object type into a standalone
+module merely because a later iteration source focuses on it.
 
 The final split level is the smallest unit that can be explained and accepted independently.
 
@@ -412,6 +454,33 @@ visibility/editability by role/state
 
 These are product fields, not database columns, API parameters, or table schemas.
 
+When a rule comes from a later version, preserve its applicability boundary
+from `applicability-matrix` in the function text whenever it affects behavior:
+
+```text
+资源类型 / 对象类型
+平台端
+role
+flow/state node
+page/location
+operation
+external system
+```
+
+Do not generalize a rule to all resources, all roles, or all platforms unless
+the source or product confirmation explicitly does so.
+
+For Gold Set-like or otherwise high-risk units, Chapter 7 local prose is
+controlled by this locked chain:
+
+```text
+source-evidence -> local-anchor-contract -> chapter-block -> consumption-map
+```
+
+The local prose cannot freeze until `scripts/validate_requirement_unit_gate.py`
+reports no `missing anchor`, `weak anchor`, or `global-only anchor`. Whole-PRD
+keyword presence does not satisfy this local requirement.
+
 ### 5.2.1 Leaf-function element check
 
 Leaf-function generation is based on element checking, not on a mandatory
@@ -439,6 +508,13 @@ If an element is not involved, has no source, or is unchanged in the current
 iteration, the function may use `-`, an empty value, `不涉及`, `本次不变`, or
 `沿用现有规则`. Do not use vague substitutes such as `按需展示`,
 `支持相关操作`, or `按具体功能判断`.
+
+For high-risk units, the element check must be materialized in
+`local-anchor-contract` before prose is written. The contract uses a
+machine-readable table with `anchor_id | anchor | required_terms | weak_terms`.
+Use `/` for required sub-anchors and ` or ` for aliases inside one sub-anchor.
+`consumption-map` must point every `anchor_id` to a concrete Chapter 7 section
+plus evidence or ledger refs.
 
 Do not make priority or delivery timing mandatory Chapter 7 elements in a full
 PRD baseline. If source materials contain `P0/P1/P2`, launch dates, delivery
@@ -473,6 +549,36 @@ multiple iterations or lacks a coherent authorial structure:
 - One task spanning several pages may be organized by the user matter if page relations are clear.
 - Do not merge distinct behavior merely to shorten the table of contents.
 - Do not create empty layers for visual symmetry.
+
+### 5.3.1 Cross-cutting rule placement
+
+For rules tracked in `cross-cutting-rule-ledger`, Chapter 7 must do both:
+
+1. Keep or reference the global/cross-cutting rule once when it has a shared
+   product meaning.
+2. State the local effect inside each affected function, page, detail section,
+   message, or operation.
+
+Typical cross-cutting rules include attachments, evaluation/report fields,
+message notifications, shared status display, external jumps, resource-instance
+display, common navigation, and audit records. Do not leave these as isolated
+iteration notes without local page destinations.
+
+### 5.3.2 Gold Slice Regression Gates
+
+Gold Set v0.1 defines four Chapter 7 preservation gates. 不要求逐字复制 Gold Slice, but the final PRD must preserve the product anchors.
+
+| Gate | Chapter 7 placement rule |
+| --- | --- |
+| form-detail gate | For create/edit/detail pages, keep 入口、按钮、嵌套表单、字段、展示规则、填写规则 with role/state visibility, validation, save/submit state changes, exceptions, and acceptance. Use `form-detail-ledger` when the page spans multiple nested forms or source fragments. |
+| workflow-permission-message gate | For workflow and message-heavy units, write the local workflow state and buttons inside the business function, then place 模板、触发矩阵、接收对象内容表、变量字典、日志开关 in the message function, and external jump boundaries in Chapter 8. Use `message-notification-ledger` when message rules span multiple functions. |
+| object-lifecycle gate | For object/resource lifecycle units, organize around lifecycle states before resource-type differences. Preserve 库表、文件、接口、归集状态、确认完成归集、资源已注销, cancellation rules, and external name/state sync. Use `object-lifecycle-ledger` when object states are spread across pages. |
+| derived-list-time-rule gate | For derived operational lists, preserve 即将超期任务清单、超期任务清单、催办反馈清单、督办编号、催办编号, generation rules, thresholds, calculation type, reminders, feedback records, and anti-duplicate behavior. Use `derived-list-time-rule-ledger` when list rows are generated from process state and time rules. |
+
+If a unit matches a gate and Chapter 7 only says `支持管理`, `支持查询`, `支持提醒`, `相关操作`, or another summary phrase, the draft fails the gate.
+If the local block omits a required anchor while the same anchor appears only
+elsewhere in the full PRD, treat it as `global-only anchor` and fail the local
+gate.
 
 ### 5.4 Product-visible constraints
 
@@ -742,8 +848,14 @@ requirement-unit packs, or validation logs, not in the assembled PRD.
 Verify:
 
 ```text
+source-inventory -> included/excluded/readability conclusion
+function-inventory-ledger -> function-inventory-coverage-gate -> Function 总览检查表 / Chapter 7 功能结构总览 -> source-location and coverage disposition retained
 source requirement -> disposition and body destination
+applicability-matrix -> correct resource type / object type, platform side, role, flow node, page, operation, and external system boundary
 role -> menu/action/data permission
+permission-ledger -> menu permission, page/list button permission, flow-node button permission, data permission, external platform control permission
+structure-decision-record -> Chapter 6/7/8 reading structure
+cross-cutting-rule-ledger -> every local function/detail/message/external destination
 current leaf function -> Chapter 6 story or justified not-applicable
 story -> Chapter 7 requirement
 external story -> Chapter 7 and Chapter 8
@@ -752,8 +864,12 @@ product field -> display/input/source/required/validation/linkage rule
 function -> testable acceptance
 pending item -> no contradictory definitive body statement
 requirement-unit change -> complete Chapter 0-10 impact row
+已接受详细内容 -> migration-preservation-check -> target chapter without compression
 frozen/inherited block -> manifest -> final file exact text
 final file -> quality validator -> no empty required chapters, duplicate chapters, placeholder numbering, process wording, or vague substitutes
+canonical filename -> file exists -> 文件可读取性校验 -> optional ASCII fallback filename when needed
+Gold Set v0.1 -> gold-slice-regression-check -> 不要求逐字复制 Gold Slice -> 必须覆盖每个 slice 的保真锚点
+source-evidence -> local-anchor-contract -> chapter-block -> consumption-map -> scripts/validate_requirement_unit_gate.py -> no missing anchor / weak anchor / global-only anchor
 ```
 
 ### 10.3 Review scope by mode
