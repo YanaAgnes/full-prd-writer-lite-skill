@@ -21,6 +21,7 @@ Use this workflow for every complete PRD task. It controls material ingestion, v
 15. Quality Validation
 16. Formal Baseline Gates
 17. Trace-Driven Skill Iteration
+18. Engineering Lifecycle Hook
 
 ## 1. Capability And Target Check
 
@@ -207,6 +208,19 @@ python3 scripts/init_requirement_unit_pack.py \
 
 If the runtime cannot execute the script, create the same files manually using
 `references/requirement-unit-pack-templates.md`.
+
+When a filesystem and Python runtime are available, initialize the workspace
+through the lifecycle hook:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py init-workspace \
+  --workspace prd-workspace \
+  --source <source-document> \
+  --system-name <system-name> \
+  --target-version <version>
+```
+
+The hook creates control files and ledgers only. Hook 不生成 PRD 正文.
 
 ### 3.1 Required artifacts by mode
 
@@ -509,6 +523,17 @@ Rules:
 5. Reconcile `function-inventory-ledger`, Function 总览检查表, Chapter 7 功能结构总览,
    `function-code-policy`, and `coverage-matrix` before declaring Chapter 7
    complete.
+6. Run the engineering hook before the leaf loop:
+
+```bash
+python3 scripts/prd_lifecycle_hook.py validate-function-coverage \
+  --workspace prd-workspace \
+  --overview "prd-workspace/Function 总览检查表.md"
+```
+
+没有通过 coverage gate，不得进入 leaf loop. 工程 Hook 负责阻断 this class of
+coverage failure so conversation state or context compression cannot silently
+skip a candidate function.
 
 ### 3.14 Coverage matrix
 
@@ -1471,3 +1496,40 @@ at least one known bad trace output now fails or is explicitly accepted
 
 This keeps the Skill learnable for product managers while allowing the internal
 control system to become stricter over time.
+
+## 18. Engineering Lifecycle Hook
+
+`scripts/prd_lifecycle_hook.py` is the default deterministic lifecycle hook for
+single-document and multi-material full PRD generation when local code execution
+is available.
+
+It controls:
+
+```text
+init-workspace
+validate-function-coverage
+complete-task
+validate-release-ready
+```
+
+Command responsibilities:
+
+| Command | When | Responsibility | Must not do |
+| --- | --- | --- | --- |
+| `init-workspace` | After target identity is known | Create recoverable workspace, control file, source inventory, function ledger and coverage matrix | Interpret source requirements |
+| `validate-function-coverage` | After `function-inventory-ledger` and Function 总览检查表 exist | Ensure every included candidate appears in overview and every pending/excluded candidate has explicit disposition | Decide product scope |
+| `complete-task` | After one leaf function has been read, enriched and written by the model | Mark the task `To Check`; in authorized confirmation mode, mark it `已生成` and advance to the next `To Generate` | Generate PRD prose |
+| `validate-release-ready` | Before formal assembly/release | Block release when any function remains `To Generate` / `To Check` or coverage no longer passes | Approve business ambiguity |
+
+Hard stops:
+
+```text
+没有通过 coverage gate，不得进入 leaf loop
+没有清空 To Generate / To Check，不得发布
+工程 Hook 负责阻断
+```
+
+The model remains responsible for reading original source evidence, enriching
+details, writing chapter blocks, and recording pending items. Product remains
+responsible for business decisions. Hook 不生成 PRD 正文, does not infer missing
+requirements, and does not replace product confirmation.

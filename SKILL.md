@@ -1,6 +1,7 @@
 ---
 name: full-prd-writer-lite
 description: Use when a product manager needs to generate, consolidate, migrate, complete, or incrementally update a full PRD from one or more historical PRDs, iteration documents, meeting notes, screenshots, prototypes, or scattered product materials.
+version: 0.3.0-alpha.1
 ---
 
 # Full PRD Writer Lite
@@ -15,6 +16,22 @@ are met. The Skill optimizes for requirement preservation, product closure,
 complete user paths, detailed product behavior, and reproducible assembly
 rather than fast one-shot generation.
 
+## Version Record
+
+Current Skill process version: `v0.3.0-alpha.1`.
+
+This version introduces an engineering lifecycle hook for the failure pattern
+observed in single-source full PRD generation: function candidates visible only
+in OCR, architecture, role-permission material, or appendix indexes can be
+missed if coverage checking is left to memory or conversation state.
+
+Version preservation rules:
+
+- Previous trace-driven fidelity snapshot: `v0.2.0-alpha.3`.
+- New Hook-driven lifecycle branch: `feature/hook-driven-prd-v0.3`.
+- Do not overwrite prior Skill versions when making process changes; create a
+  branch or tag before changing workflow, scripts, gates, or regression tests.
+
 ## Hard Invariants
 
 - 固定使用第 0-10 章编号体系，不因输入材料结构改变章节职责；第 0-9 章必需，第 10 章按附录准入条件生成。
@@ -22,6 +39,8 @@ rather than fast one-shot generation.
 - 第 6 章覆盖全部范围内用户故事与使用路径，不按核心、重点或辅助抽样。
 - 第 7 章完整描述全部当前有效功能，不因篇幅迁往第 10 章。
 - Function 总览检查表和 Chapter 7 功能结构总览必须先通过 `function-inventory-coverage-gate`：从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能；候选功能不得因为待定、正文缺失、只有 OCR/角色权限来源或缺少详细正文而消失，必须进入 To Generate、明确排除或 `PEND-` 待确认。
+- 没有通过 coverage gate，不得进入 leaf loop；没有清空 To Generate / To Check，不得发布；工程 Hook 负责阻断这些状态错误。
+- 可执行环境允许时，必须用 `scripts/prd_lifecycle_hook.py` 执行工作区初始化、功能覆盖门禁、叶子功能状态推进和发布前阻断；不得只在对话中口头声明这些状态。
 - 第 7 章叶子功能执行要素检查，但不强制统一表格模板；缺少稳定原文风格或多轮拼接时采用正式 PRD 产品说明风格。
 - 第 7 章不把优先级、时间要求作为完整版 PRD 功能必查要素；只有转化为产品可见约束时才写入对应功能规则。
 - 第 8 章按外部系统组织，但仍按协同场景和功能写详细产品需求。
@@ -158,6 +177,7 @@ Control rules:
 -> 确认系统、范围、排除范围、模式、初步目标版本
 -> 建立 source-inventory 并确认主基线、附件和排除材料
 -> 建立 function-inventory-ledger 并执行 function-inventory-coverage-gate
+-> 用 scripts/prd_lifecycle_hook.py validate-function-coverage 阻断漏项
 -> 建立 structure-decision-record 并确认正文组织维度
 -> 建立当前模式必要的中间产物
 -> 建立 applicability-matrix、permission-ledger、cross-cutting-rule-ledger
@@ -166,11 +186,13 @@ Control rules:
 -> 确认系统能力地图和全局规则
 -> 生成 chapter-block 与 consumption-map
 -> 执行 requirement-unit local gate
+-> 用 scripts/prd_lifecycle_hook.py complete-task 推进 To Check / 已生成
 -> 按需求单元分轮确认并冻结正文块
 -> 对结构迁移或已接受内容执行 migration-preservation-check
 -> 再次确认最终文档身份
 -> 确认正式 Full PRD 文件名
 -> 确定性装配和校验
+-> 用 scripts/prd_lifecycle_hook.py validate-release-ready 阻断未处理队列
 -> 正文质量校验
 ```
 
@@ -264,19 +286,23 @@ M- module -> US- story -> F- function -> EXT- collaboration -> PEND- pending ite
 3. 判断材料是否足以恢复目标范围；不足时先补材料或缩小目标，不承诺正式完整版。
 4. 向用户确认系统名称、范围、排除范围、模式和初步目标版本。
 5. 加载 `references/prd-discovery-workflow.md`，按模式建立必要工作区。
-6. 建立 `source-inventory`、`structure-decision-record` 和必要的 trace-control ledgers。
-7. 建立 `function-inventory-ledger`，从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能，并执行 `function-inventory-coverage-gate`。
-8. 恢复并确认当前系统能力地图、全局规则、角色、流程、状态和外部边界。
-9. 按需求单元提取当前有效需求，处理冲突、适用范围、权限、横切规则和待确认问题。
-10. 对高风险需求单元先执行 `scripts/init_requirement_unit_pack.py` 或手工建立等价骨架，再锁定 `source-evidence`，并从固定 profile 生成 `local-anchor-contract`。
-11. 基于证据和 ledgers 生成该需求单元对第 0-10 章的候选 `chapter-block` 与 `consumption-map`。
-12. 执行 requirement-unit local gate，识别 `missing anchor`、`weak anchor`、`global-only anchor`，未通过则补齐后再进入确认。
-13. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
-14. 完成全部计划内需求单元后，执行完整性、结构迁移保真、local gate 汇总和内容质量闸门。
-15. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和正式 Full PRD 文件名。
-16. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配干净正式文件。
-17. 使用 `scripts/assemble_prd.py --check-existing` 和 `scripts/validate_prd_quality.py` 检查正式文件一致性与正文质量。
-18. 装配、质量、覆盖、可读取性、local gate 和跨章节检查全部通过后，才可标记为正式基线。
+6. 可执行环境允许时，运行 `scripts/prd_lifecycle_hook.py init-workspace` 初始化可恢复工作区。
+7. 建立 `source-inventory`、`structure-decision-record` 和必要的 trace-control ledgers。
+8. 建立 `function-inventory-ledger`，从目录 / TOC、功能架构（含 OCR）、功能汇总、角色权限/菜单权限、正文标题、截图文字和附件索引交叉抽取候选功能，并执行 `function-inventory-coverage-gate`。
+9. 运行 `scripts/prd_lifecycle_hook.py validate-function-coverage`；没有通过 coverage gate，不得进入 leaf loop。
+10. 恢复并确认当前系统能力地图、全局规则、角色、流程、状态和外部边界。
+11. 按需求单元提取当前有效需求，处理冲突、适用范围、权限、横切规则和待确认问题。
+12. 对高风险需求单元先执行 `scripts/init_requirement_unit_pack.py` 或手工建立等价骨架，再锁定 `source-evidence`，并从固定 profile 生成 `local-anchor-contract`。
+13. 基于证据和 ledgers 生成该需求单元对第 0-10 章的候选 `chapter-block` 与 `consumption-map`。
+14. 执行 requirement-unit local gate，识别 `missing anchor`、`weak anchor`、`global-only anchor`，未通过则补齐后再进入确认。
+15. 将确认文本原样写入章节分片，执行文本或哈希比对并冻结。
+16. 运行 `scripts/prd_lifecycle_hook.py complete-task`，把本轮叶子功能推进到 `To Check`；授权确认模式下可使用 `--auto-approve` 推进到 `已生成` 并指向下一项。
+17. 完成全部计划内需求单元后，执行完整性、结构迁移保真、local gate 汇总和内容质量闸门。
+18. 再次确认系统名称、版本号、基线日期、正式标记、生成日期和正式 Full PRD 文件名。
+19. 运行 `scripts/prd_lifecycle_hook.py validate-release-ready`；没有清空 To Generate / To Check，不得发布。
+20. 使用 `scripts/assemble_prd.py` 从 `chapters/` 唯一真源装配干净正式文件。
+21. 使用 `scripts/assemble_prd.py --check-existing` 和 `scripts/validate_prd_quality.py` 检查正式文件一致性与正文质量。
+22. 装配、质量、覆盖、可读取性、local gate 和跨章节检查全部通过后，才可标记为正式基线。
 
 ## Requirement Units And Content Blocks
 
@@ -406,7 +432,12 @@ requirement-unit local gate passed
 ## Runtime Boundaries
 
 - 不建立 Schema、Jinja、Normalizer、数据库式追踪或多代理编排。
-- 确定性脚本只用于校验和装配：`scripts/assemble_prd.py` 校验并拼接正文块，`scripts/validate_prd_quality.py` 校验正式正文质量；二者都不得解释需求或生成产品内容。
+- 确定性脚本只用于初始化、状态推进、校验和装配：`scripts/prd_lifecycle_hook.py` 控制生命周期状态和门禁，`scripts/assemble_prd.py` 校验并拼接正文块，`scripts/validate_prd_quality.py` 校验正式正文质量；这些脚本都不得解释需求或生成产品内容。
+- Hook 不生成 PRD 正文，不补写功能细节，不替代产品确认；模型负责语义整理和正文生成，产品负责业务口径确认，工程 Hook 负责阻断状态错误、漏项和未完成队列。
+- `scripts/prd_lifecycle_hook.py init-workspace` 只创建可恢复目录和基础控制文件。
+- `scripts/prd_lifecycle_hook.py validate-function-coverage` 只校验 `function-inventory-ledger`、Function 总览检查表和覆盖处置是否闭环。
+- `scripts/prd_lifecycle_hook.py complete-task` 只推进 `To Generate -> To Check -> 已生成` 状态和当前指针。
+- `scripts/prd_lifecycle_hook.py validate-release-ready` 只在发布前确认没有未处理状态且覆盖门禁仍通过。
 - `scripts/validate_requirement_unit_gate.py` 只负责校验 `source-evidence`、`local-anchor-contract`、`chapter-block`、`consumption-map` 的闭环完整性，不负责发明缺失需求。
 - 一次性部署、环境、中间件、技术重构和研发交付任务不进入完整产品基线。
 - 产品可见、可验证的限制仍应写入第 7 或第 8 章。
