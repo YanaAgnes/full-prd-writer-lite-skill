@@ -47,7 +47,7 @@ class AssemblePrdTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        return workspace, manifest, workspace / "FULL-PRD.md"
+        return workspace, manifest, workspace / "示例系统PRD-V1.0_完整版_正式基线候选_基线20260625_生成20260625.md"
 
     def run_script(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(

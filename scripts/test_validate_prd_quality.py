@@ -16,7 +16,7 @@ class ValidatePrdQualityTest(unittest.TestCase):
     def run_validator(self, final_text: str, manifest_text: str | None = None):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
-            final = workspace / "FULL-PRD.md"
+            final = workspace / "示例系统PRD-V1.0_完整版_正式基线候选_基线20260625_生成20260625.md"
             final.write_text(textwrap.dedent(final_text).strip() + "\n", encoding="utf-8")
             cmd = [sys.executable, str(SCRIPT), "--final", str(final)]
             if manifest_text is not None:
@@ -321,6 +321,62 @@ class ValidatePrdQualityTest(unittest.TestCase):
             ### 8.2.1 EXT-IAM-001 统一身份协同
             - 本系统职责：展示账户列表并传递用户标识。
             - 外部系统职责：返回账户身份与权限结果。
+            # 9. 待确认事项
+            无。
+            """
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("QUALITY_PASSED", result.stdout)
+
+    def test_accepts_official_narrative_chapter_7_without_fixed_leaf_template(self):
+        result = self.run_validator(
+            """
+            # 0. 修订记录
+            | 版本 | 日期 | 说明 |
+            | --- | --- | --- |
+            | V1.0 | 2026-06-24 | 建立正式基线。 |
+            # 1. 文档信息
+            | 项目 | 内容 |
+            | --- | --- |
+            | 系统名称 | 智能搜索系统 |
+            # 2. 系统概述
+            智能搜索系统为用户提供统一搜索、资源发现和知识问答能力。
+            # 3. 文档覆盖范围
+            本文覆盖智能搜索首页、对话结果页和历史会话。
+            # 4. 用户角色与权限
+            登录用户可访问智能搜索，超级用户可查看管理入口。
+            # 5. 业务流程
+            用户从首页输入问题，系统生成结果并允许追问或回放历史会话。
+            # 6. 用户故事与使用路径
+            ## 6.1 用户故事总览
+            | 故事编号 | 用户目标 | 关联功能 |
+            | --- | --- | --- |
+            | US-SEARCH-001 | 登录用户从首页提交问题并查看结果。 | F-SEARCH-001 |
+            # 7. 功能需求说明
+            ## 7.1 功能结构总览
+            | 功能编号 | 层级 | 功能名称 | 类型 | 上级节点 | 定位/说明 | 详述位置 |
+            | --- | --- | --- | --- | --- | --- | --- |
+            | F-SEARCH-001 | 叶子功能 | 智能搜索首页 | 页面功能 | M-SEARCH | 用户提交搜索问题的首页入口。 | 7.2.1 |
+            ## 7.2 智能搜索
+            ### 7.2.1 F-SEARCH-001 智能搜索首页
+            #### 页面路径与入口
+            页面路径为智能搜索 / 首页。入口包括左侧导航“智能搜索”和登录后默认首页。
+            #### 页面整体布局说明
+            左侧固定站点壳展示导航，主区域居中展示欢迎语、搜索框、模式按钮和推荐内容。
+            #### 页面交互说明
+            用户在搜索框输入问题后点击发送进入对话结果页；输入为空时按钮保持灰色并阻断提交。搜索问题字段必填，长度为 1-200 字，超过限制时提示“限制输入200个字符”。
+            #### 字段与数据规则
+            | 字段名称 | 字段 key | 规则 |
+            | --- | --- | --- |
+            | 搜索问题 | question | 必填，1-200 字。 |
+            | 搜索模式 | category | 综合、找数据、找组件、找应用、知识问答。 |
+            #### 权限与异常说明
+            登录用户可访问并提交搜索；未登录用户无入口。无结果时展示空状态，服务超时时提示用户稍后重试。
+            #### 验收口径
+            - AC-SEARCH-001：用户输入 1-200 字问题后可进入结果页。
+            # 8. 外部系统协同需求说明
+            ## 8.1 外部系统协同总览
+            无外部协同。
             # 9. 待确认事项
             无。
             """
